@@ -160,10 +160,11 @@ int main(void) {
     mark_vertical_stair_blocking(maze, stairs, num_stairs);
     initialize_poles(poles, &num_poles);
     initialize_walls(walls, &num_walls);
-    place_random_flag(flag, maze, walls, num_walls);
+    place_random_flag(flag, maze, stairs, num_stairs, poles, num_poles, walls, num_walls);
+
 
    
-    printf(" Flag is placed at [%d,%d,%d]\n", flag[0], flag[1], flag[2]);
+    printf(" Flag placed at [%d,%d,%d] - valid, non-teleport cell\n", flag[0], flag[1], flag[2]);
     printf(" 3 Players start with 100 movement points each\n");
    
     printf(" First player to reach the flag wins!\n\n");

@@ -105,7 +105,7 @@ void move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH
 int is_wall_blocking(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int floor, int w1, int l1, int w2, int l2);
 int find_stair_at(Stair stairs[], int num_stairs, int floor, int w, int l);
 int find_pole_at(Pole poles[], int num_poles, int floor, int w, int l);
-void place_random_flag(int flag[3], Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], Wall walls[], int num_walls);
+
 int check_flag_capture(Player *player, const int flag[3]);
 void check_player_capture(Player players[3], int current_player);
 void update_stair_directions(Stair stairs[], int num_stairs);
@@ -115,4 +115,11 @@ int is_valid_position(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int floo
 void handle_bawana_turns(Player *player);
 void mark_vertical_stair_blocking(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], 
     Stair stairs[], int num_stairs);
+    void place_random_flag(int flag[3], 
+        Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH],
+        Stair stairs[], int num_stairs,
+        Pole poles[], int num_poles,
+        Wall walls[], int num_walls);  
+
+
 #endif

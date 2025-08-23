@@ -579,24 +579,35 @@ void move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH
     }
 }
 
-void place_random_flag(int flag[3], Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], Wall walls[], int num_walls) {
-    // Collect all valid, non-starting, non-Bawana cells
-    int valid_positions[1000][3];
-    int count = 0;
+void place_random_flag(int flag[3], 
+    Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH],
+    Stair stairs[], int num_stairs,
+    Pole poles[], int num_poles,
+    Wall walls[], int num_walls) {
+int valid_positions[1000][3];
+int count = 0;
 
-    for (int f = 0; f < NUM_FLOORS; f++) {
-        for (int w = 0; w < FLOOR_WIDTH; w++) {
-            for (int l = 0; l < FLOOR_LENGTH; l++) {
-                if (maze[f][w][l].is_valid && !maze[f][w][l].is_starting_area && 
-                    !maze[f][w][l].has_wall && maze[f][w][l].bawana_cell_type == -1) {
-                    valid_positions[count][0] = f;
-                    valid_positions[count][1] = w;
-                    valid_positions[count][2] = l;
-                    count++;
-                }
-            }
+for (int f = 0; f < NUM_FLOORS; f++) {
+for (int w = 0; w < FLOOR_WIDTH; w++) {
+for (int l = 0; l < FLOOR_LENGTH; l++) {
+if (!maze[f][w][l].is_valid ||
+ maze[f][w][l].is_starting_area ||
+ maze[f][w][l].has_wall ||
+ maze[f][w][l].bawana_cell_type != -1) {
+ continue;
+}
+
+if (find_stair_at(stairs, num_stairs, f, w, l) != -1) continue;
+if (find_pole_at(poles, num_poles, f, w, l) != -1) continue;
+
+valid_positions[count][0] = f;
+valid_positions[count][1] = w;
+valid_positions[count][2] = l;
+count++;
         }
     }
+}
+
 
     if (count == 0) {
         printf("Error: No valid cells for flag placement!\n");
@@ -647,6 +658,7 @@ void check_player_capture(Player players[3], int current_player) {
         }
     }
 }
+//Block intermediate stair cells
 void mark_vertical_stair_blocking(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH],
     Stair stairs[], int num_stairs) {
 for (int i = 0; i < num_stairs; i++) {
@@ -661,11 +673,11 @@ int floor_max = (sf > ef) ? sf : ef;
 
 for (int f = floor_min + 1; f < floor_max; f++) {
 if (f >= 0 && f < NUM_FLOORS) {
-maze[f][sw][sl].has_wall = 1;
-                                }
-            }
-        }
-        }
+maze[f][sw][sl].has_wall = 1;}
+                                
+         }
+    }
+ }
 void update_stair_directions(Stair stairs[], int num_stairs) {
     static int last_update_round = 0;
     static int current_round = 0;
