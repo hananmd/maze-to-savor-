@@ -4,7 +4,7 @@
 void initialize_maze(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]) {
     memset(maze, 0, sizeof(Cell) * NUM_FLOORS * FLOOR_WIDTH * FLOOR_LENGTH);
 
-    // Floor 0: 214 usable blocks, starting area [6-9,8-16] is restricted
+    // Floor 0: 856 sq ft = 214 blocks
     for (int w = 0; w < FLOOR_WIDTH; w++) {
         for (int l = 0; l < FLOOR_LENGTH; l++) {
             if (w >= START_AREA_W_MIN && w <= START_AREA_W_MAX &&
@@ -16,6 +16,9 @@ void initialize_maze(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]) {
             }
             maze[0][w][l].has_wall = 0;
             maze[0][w][l].bawana_cell_type = -1;
+            maze[0][w][l].consumable_value = 0;
+            maze[0][w][l].bonus_value = 0;
+            maze[0][w][l].multiplier = 1;
         }
     }
 
@@ -25,6 +28,9 @@ void initialize_maze(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]) {
             maze[0][w][l].is_valid = 1;
             maze[0][w][l].has_wall = 0;
             maze[0][w][l].bawana_cell_type = -1;
+            maze[0][w][l].consumable_value = 0;
+            maze[0][w][l].bonus_value = 0;
+            maze[0][w][l].multiplier = 1;
         }
     }
 
@@ -36,26 +42,16 @@ void initialize_maze(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]) {
         maze[0][6][l].has_wall = 1;
     }
 
-    // Bawana entrance: [0,9,19] → one-way out
-    maze[0][9][19].is_valid = 1;
-    maze[0][9][19].has_wall = 0;
-    maze[0][9][19].bawana_cell_type = -1;
-
     // Bawana interior: assign effects
-    // 2 of each: Food Poisoning, Disoriented, Triggered, Happy
-    // 4 random MP (10–100)
-
     int bawana_cells[12][2] = {
         {6,21}, {6,22}, {6,23}, {6,24},
         {7,21}, {7,22}, {7,23}, {7,24},
         {8,21}, {8,22}, {8,23}, {8,24}
     };
 
-    // Assign effects
     int types[] = {BA_FOOD_POISONING, BA_DISORIENTED, BA_TRIGGERED, BA_HAPPY};
-    int count = 0;
     for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 2; j++) {
+        for (int j = 0; j < 3; j++) {
             int idx = rand() % 12;
             while (maze[0][bawana_cells[idx][0]][bawana_cells[idx][1]].bawana_cell_type != -1) {
                 idx = rand() % 12;
@@ -64,7 +60,7 @@ void initialize_maze(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]) {
         }
     }
 
-    // Assign random MP to remaining 4
+    // Random MP cells (4 cells)
     for (int i = 0; i < 4; i++) {
         int idx = rand() % 12;
         while (maze[0][bawana_cells[idx][0]][bawana_cells[idx][1]].bawana_cell_type != -1) {
@@ -72,47 +68,168 @@ void initialize_maze(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]) {
         }
         maze[0][bawana_cells[idx][0]][bawana_cells[idx][1]].bawana_cell_type = BA_RANDOM_MP;
     }
+
+    // Floor 1: 748 sq ft = 187 blocks
+    for (int w = 0; w < 10; w++) {
+        for (int l = 0; l < 8; l++) {
+            maze[1][w][l].is_valid = 1;
+            maze[1][w][l].has_wall = 0;
+            maze[1][w][l].bawana_cell_type = -1;
+            maze[1][w][l].consumable_value = 0;
+            maze[1][w][l].bonus_value = 0;
+            maze[1][w][l].multiplier = 1;
+        }
+    }
+    for (int w = 0; w < 10; w++) {
+        for (int l = 17; l < 25; l++) {
+            maze[1][w][l].is_valid = 1;
+            maze[1][w][l].has_wall = 0;
+            maze[1][w][l].bawana_cell_type = -1;
+            maze[1][w][l].consumable_value = 0;
+            maze[1][w][l].bonus_value = 0;
+            maze[1][w][l].multiplier = 1;
+        }
+    }
+    for (int w = 6; w < 10; w++) {
+        for (int l = 8; l < 17; l++) {
+            maze[1][w][l].is_valid = 1;
+            maze[1][w][l].has_wall = 0;
+            maze[1][w][l].bawana_cell_type = -1;
+            maze[1][w][l].consumable_value = 0;
+            maze[1][w][l].bonus_value = 0;
+            maze[1][w][l].multiplier = 1;
+        }
+    }
+
+    // Floor 2: 360 sq ft = 90 blocks
+    for (int w = 0; w < FLOOR_WIDTH; w++) {
+        for (int l = 8; l < 17; l++) {
+            maze[2][w][l].is_valid = 1;
+            maze[2][w][l].has_wall = 0;
+            maze[2][w][l].bawana_cell_type = -1;
+            maze[2][w][l].consumable_value = 0;
+            maze[2][w][l].bonus_value = 0;
+            maze[2][w][l].multiplier = 1;
+        }
+    }
+
+    // Initialize consumable, bonus, multiplier (Rule 10)
+    int total_cells = 0;
+    int valid_cells[3][10][25] = {0};
+
+    for (int f = 0; f < NUM_FLOORS; f++) {
+        for (int w = 0; w < FLOOR_WIDTH; w++) {
+            for (int l = 0; l < FLOOR_LENGTH; l++) {
+                if (maze[f][w][l].is_valid) {
+                    valid_cells[f][w][l] = 1;
+                    total_cells++;
+                }
+            }
+        }
+    }
+
+    int n_zero = total_cells * 0.25;
+    int n_consumable = total_cells * 0.35;
+    int n_bonus12 = total_cells * 0.25;
+    int n_bonus35 = total_cells * 0.10;
+    int n_mult = total_cells * 0.05;
+
+    // Set 25% to 0 consumable
+    int placed = 0;
+    while (placed < n_zero) {
+        int f = rand() % NUM_FLOORS;
+        int w = rand() % FLOOR_WIDTH;
+        int l = rand() % FLOOR_LENGTH;
+        if (!valid_cells[f][w][l]) continue;
+        if (maze[f][w][l].consumable_value == 0) {
+            maze[f][w][l].consumable_value = 0;
+            placed++;
+        }
+    }
+
+    // Set 35% to 1–4
+    placed = 0;
+    while (placed < n_consumable) {
+        int f = rand() % NUM_FLOORS;
+        int w = rand() % FLOOR_WIDTH;
+        int l = rand() % FLOOR_LENGTH;
+        if (!valid_cells[f][w][l]) continue;
+        if (maze[f][w][l].consumable_value == 0) {
+            maze[f][w][l].consumable_value = (rand() % 4) + 1;
+            placed++;
+        }
+    }
+
+    // Set 25% bonus 1 or 2
+    placed = 0;
+    while (placed < n_bonus12) {
+        int f = rand() % NUM_FLOORS;
+        int w = rand() % FLOOR_WIDTH;
+        int l = rand() % FLOOR_LENGTH;
+        if (!valid_cells[f][w][l]) continue;
+        if (maze[f][w][l].bonus_value == 0 && maze[f][w][l].multiplier == 1) {
+            maze[f][w][l].bonus_value = (rand() % 2) + 1;
+            placed++;
+        }
+    }
+
+    // Set 10% bonus 3–5
+    placed = 0;
+    while (placed < n_bonus35) {
+        int f = rand() % NUM_FLOORS;
+        int w = rand() % FLOOR_WIDTH;
+        int l = rand() % FLOOR_LENGTH;
+        if (!valid_cells[f][w][l]) continue;
+        if (maze[f][w][l].bonus_value == 0 && maze[f][w][l].multiplier == 1) {
+            maze[f][w][l].bonus_value = (rand() % 3) + 3;
+            placed++;
+        }
+    }
+
+    // Set 5% multiplier 2 or 3
+    placed = 0;
+    while (placed < n_mult) {
+        int f = rand() % NUM_FLOORS;
+        int w = rand() % FLOOR_WIDTH;
+        int l = rand() % FLOOR_LENGTH;
+        if (!valid_cells[f][w][l]) continue;
+        if (maze[f][w][l].bonus_value == 0 && maze[f][w][l].multiplier == 1) {
+            maze[f][w][l].multiplier = (rand() % 2) + 2;
+            placed++;
+        }
+    }
 }
 
 void initialize_players(Player players[3]) {
-    // Player A
     players[PLAYER_A].pos[0] = 0; players[PLAYER_A].pos[1] = 6; players[PLAYER_A].pos[2] = 12;
     players[PLAYER_A].in_game = 0;
     players[PLAYER_A].direction = DIR_NORTH;
     players[PLAYER_A].movement_points = 100;
     players[PLAYER_A].roll_count = 0;
     players[PLAYER_A].captured = 0;
-    players[PLAYER_A].capture_start_pos[0] = 0;
-    players[PLAYER_A].capture_start_pos[1] = 6;
-    players[PLAYER_A].capture_start_pos[2] = 12;
+    players[PLAYER_A].capture_start_pos[0] = 0; players[PLAYER_A].capture_start_pos[1] = 6; players[PLAYER_A].capture_start_pos[2] = 12;
     players[PLAYER_A].bawana_effect = 0;
     players[PLAYER_A].bawana_turns_left = 0;
     players[PLAYER_A].bawana_random_mp = 0;
 
-    // Player B
     players[PLAYER_B].pos[0] = 0; players[PLAYER_B].pos[1] = 9; players[PLAYER_B].pos[2] = 8;
     players[PLAYER_B].in_game = 0;
     players[PLAYER_B].direction = DIR_WEST;
     players[PLAYER_B].movement_points = 100;
     players[PLAYER_B].roll_count = 0;
     players[PLAYER_B].captured = 0;
-    players[PLAYER_B].capture_start_pos[0] = 0;
-    players[PLAYER_B].capture_start_pos[1] = 9;
-    players[PLAYER_B].capture_start_pos[2] = 8;
+    players[PLAYER_B].capture_start_pos[0] = 0; players[PLAYER_B].capture_start_pos[1] = 9; players[PLAYER_B].capture_start_pos[2] = 8;
     players[PLAYER_B].bawana_effect = 0;
     players[PLAYER_B].bawana_turns_left = 0;
     players[PLAYER_B].bawana_random_mp = 0;
 
-    // Player C
     players[PLAYER_C].pos[0] = 0; players[PLAYER_C].pos[1] = 9; players[PLAYER_C].pos[2] = 16;
     players[PLAYER_C].in_game = 0;
     players[PLAYER_C].direction = DIR_EAST;
     players[PLAYER_C].movement_points = 100;
     players[PLAYER_C].roll_count = 0;
     players[PLAYER_C].captured = 0;
-    players[PLAYER_C].capture_start_pos[0] = 0;
-    players[PLAYER_C].capture_start_pos[1] = 9;
-    players[PLAYER_C].capture_start_pos[2] = 16;
+    players[PLAYER_C].capture_start_pos[0] = 0; players[PLAYER_C].capture_start_pos[1] = 9; players[PLAYER_C].capture_start_pos[2] = 16;
     players[PLAYER_C].bawana_effect = 0;
     players[PLAYER_C].bawana_turns_left = 0;
     players[PLAYER_C].bawana_random_mp = 0;
@@ -274,6 +391,13 @@ void move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH
             return;
         }
 
+        // Apply consumable cost
+        player->movement_points -= maze[f][w][l].consumable_value;
+        if (player->movement_points <= 0) {
+            reset_to_bawana(player);
+            return;
+        }
+
         player->pos[1] = w;
         player->pos[2] = l;
 
@@ -305,57 +429,11 @@ void move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH
 
         // Check for pole
         int pole_index = find_pole_at(poles, num_poles, f, w, l);
-        if (pole_index != -1) {
-            Pole p = poles[pole_index];
-            if (f == p.start_floor) {
-                player->pos[0] = p.end_floor;
-                player->pos[1] = p.w;
-                player->pos[2] = p.l;
-            }
+        if (pole_index != -1 && f == poles[pole_index].start_floor) {
+            player->pos[0] = poles[pole_index].end_floor;
+            player->pos[1] = poles[pole_index].w;
+            player->pos[2] = poles[pole_index].l;
             continue;
-        }
-
-        // Check for Bawana
-        if (f == 0 && w >= 6 && w <= 9 && l >= 20 && l <= 24) {
-            if (player->bawana_effect == 0) {
-                // Apply Bawana effect
-                int cell_type = maze[f][w][l].bawana_cell_type;
-                if (cell_type == BA_FOOD_POISONING) {
-                    player->bawana_effect = 1;
-                    player->bawana_turns_left = 3;
-                    printf("⚠️ Player %c: Food Poisoning! Skipping next 3 turns.\n", 'A' + player->pos[0]);
-                } else if (cell_type == BA_DISORIENTED) {
-                    player->bawana_effect = 2;
-                    player->bawana_turns_left = 4;
-                    player->movement_points += 50;
-                    player->pos[1] = 9;
-                    player->pos[2] = 19;
-                    player->direction = rand() % 4;
-                    printf("🌀 Player %c: Disoriented! 50 MP, placed at entrance.\n", 'A' + player->pos[0]);
-                } else if (cell_type == BA_TRIGGERED) {
-                    player->bawana_effect = 3;
-                    player->bawana_turns_left = 4;
-                    player->movement_points += 50;
-                    player->pos[1] = 9;
-                    player->pos[2] = 19;
-                    printf("💥 Player %c: Triggered! 50 MP, placed at entrance.\n", 'A' + player->pos[0]);
-                } else if (cell_type == BA_HAPPY) {
-                    player->bawana_effect = 4;
-                    player->bawana_turns_left = 4;
-                    player->movement_points += 200;
-                    player->pos[1] = 9;
-                    player->pos[2] = 19;
-                    printf("🎉 Player %c: Happy! 200 MP, placed at entrance.\n", 'A' + player->pos[0]);
-                } else if (cell_type == BA_RANDOM_MP) {
-                    player->bawana_effect = 5;
-                    player->bawana_turns_left = 4;
-                    player->bawana_random_mp = rand() % 91 + 10;
-                    player->movement_points += player->bawana_random_mp;
-                    player->pos[1] = 9;
-                    player->pos[2] = 19;
-                    printf("💰 Player %c: Random MP +%d, placed at entrance.\n", 'A' + player->pos[0], player->bawana_random_mp);
-                }
-            }
         }
     }
 }
@@ -416,7 +494,6 @@ void check_player_capture(Player players[3], int current_player) {
             printf("Player %c captures Player %c!\n", 'A' + current_player, 'A' + i);
             players[i].in_game = 0;
             players[i].captured = 1;
-            // Reset to starting area
             switch (i) {
                 case 0: players[i].pos[1] = 6; players[i].pos[2] = 12; break;
                 case 1: players[i].pos[1] = 9; players[i].pos[2] = 8;  break;
@@ -435,7 +512,7 @@ void update_stair_directions(Stair stairs[], int num_stairs) {
         for (int i = 0; i < num_stairs; i++) {
             stairs[i].direction_type = rand() % 3;
         }
-        printf(" Stair directions updated after 5 rounds.\n");
+        printf("🔄 Stair directions updated after 5 rounds.\n");
     }
 }
 

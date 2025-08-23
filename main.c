@@ -1,5 +1,6 @@
 // main.c
 #include "game.h"
+#include <stdio.h>
 
 static void wait_for_enter(const char *prompt) {
     char buffer[100];
@@ -39,33 +40,33 @@ void play_turn(int player_id, Player players[3], Cell maze[NUM_FLOORS][FLOOR_WID
         else { printf("Direction unchanged\n"); }
     }
 
-    // Check if Bawana effect is active
-    if (p->bawana_effect > 0) {
-        p->bawana_turns_left--;
-        if (p->bawana_turns_left == 0) {
-            p->bawana_effect = 0;
-            printf("✅ Player %c: Bawana effect ended.\n", 'A' + player_id);
-        } else {
-            printf("⏳ Player %c: Bawana effect continues (%d turns left).\n", 'A' + player_id, p->bawana_turns_left);
-            if (p->bawana_effect == 2 || p->bawana_effect == 3) {
-                // Disoriented or Triggered: override direction dice
-                if (p->bawana_effect == 2) {
-                    p->direction = rand() % 4;
-                    printf("🌀 Direction randomized due to disorientation.\n");
-                } else if (p->bawana_effect == 3) {
-                    move_roll *= 2;
-                    printf("💥 Double move activated due to trigger.\n");
-                }
-            }
-        }
+    if (p->bawana_effect == 2) {
+        p->direction = rand() % 4;
+        printf("🌀 Direction randomized due to disorientation.\n");
+    } else if (p->bawana_effect == 3) {
+        move_roll *= 2;
+        printf("💥 Triggered! Movement doubled: %d steps\n", move_roll);
     }
 
     move_player_with_teleport(p, maze, stairs, num_stairs, poles, num_poles, walls, num_walls, move_roll);
     printf("Player %c moves to [%d,%d,%d]\n", 'A'+player_id, p->pos[0], p->pos[1], p->pos[2]);
 
-    // Check for Bawana entry (MP ≤ 0)
+    if (p->in_game) {
+        Cell *cell = &maze[p->pos[0]][p->pos[1]][p->pos[2]];
+        if (cell->bonus_value > 0) {
+            p->movement_points += cell->bonus_value;
+            printf("🎁 Bonus! +%d movement points. Total: %d\n", cell->bonus_value, p->movement_points);
+        }
+        if (cell->multiplier > 1) {
+            printf("✨ Multiplier x%d applied!\n", cell->multiplier);
+            p->movement_points *= cell->multiplier;
+            printf("New movement points: %d\n", p->movement_points);
+        }
+    }
+
     if (p->movement_points <= 0) {
         reset_to_bawana(p);
+        return;
     }
 
     check_player_capture(players, player_id);
@@ -97,8 +98,9 @@ int main(void) {
     initialize_walls(walls, &num_walls);
     place_random_flag(flag, maze, walls, num_walls);
 
-    printf("Maze of UCSC\n");
-    printf("Flag is at [%d,%d,%d]\n\n", flag[0], flag[1], flag[2]);
+    printf("=== Maze of UCSC ===\n");
+    printf("Flag is at [%d,%d,%d]\n", flag[0], flag[1], flag[2]);
+    printf("Players start with 100 movement points.\n\n");
 
     int round = 1;
     while (1) {

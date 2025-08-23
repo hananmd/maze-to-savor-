@@ -27,7 +27,6 @@
 #define DIR_EAST  1
 #define DIR_SOUTH 2
 #define DIR_WEST  3
-#define DIR_EMPTY -1
 
 // Stair directions (Rule 6)
 #define STAIR_UP_ONLY       0
@@ -70,6 +69,9 @@ typedef struct {
     int is_starting_area;
     int has_wall;
     int bawana_cell_type; // -1 = not Bawana, 0-4 = effect type
+    int consumable_value; // 0 to 4 (Rule 8)
+    int bonus_value;      // 0, 1-2 (25%), 3-5 (10%)
+    int multiplier;       // 1 (no effect), 2 or 3 (5%)
 } Cell;
 
 typedef struct {
@@ -79,10 +81,10 @@ typedef struct {
     int movement_points;    // starts at 100
     int roll_count;         // for direction dice every 4th roll
     int captured;           // 1 if captured
-    int capture_start_pos[3]; // starting position when captured
-    int bawana_effect;      // 0 = none, 1 = food poisoning, 2 = disoriented, 3 = triggered, 4 = happy
-    int bawana_turns_left;  // countdown for effects
-    int bawana_random_mp;   // random MP value if applicable
+    int capture_start_pos[3];
+    int bawana_effect;      // 0 = none, 1 = food poisoning, etc.
+    int bawana_turns_left;
+    int bawana_random_mp;
 } Player;
 
 // Function declarations
