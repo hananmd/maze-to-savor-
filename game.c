@@ -647,7 +647,25 @@ void check_player_capture(Player players[3], int current_player) {
         }
     }
 }
+void mark_vertical_stair_blocking(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH],
+    Stair stairs[], int num_stairs) {
+for (int i = 0; i < num_stairs; i++) {
+int sf = stairs[i].start_floor, ef = stairs[i].end_floor;
+int sw = stairs[i].start_w, sl = stairs[i].start_l;
+int ew = stairs[i].end_w, el = stairs[i].end_l;
 
+if (sw != ew || sl != el) continue;
+
+int floor_min = (sf < ef) ? sf : ef;
+int floor_max = (sf > ef) ? sf : ef;
+
+for (int f = floor_min + 1; f < floor_max; f++) {
+if (f >= 0 && f < NUM_FLOORS) {
+maze[f][sw][sl].has_wall = 1;
+                                }
+            }
+        }
+        }
 void update_stair_directions(Stair stairs[], int num_stairs) {
     static int last_update_round = 0;
     static int current_round = 0;

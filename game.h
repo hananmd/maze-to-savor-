@@ -113,5 +113,6 @@ void reset_to_bawana(Player *player);
 void apply_bawana_effect(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]);
 int is_valid_position(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int floor, int w, int l);
 void handle_bawana_turns(Player *player);
-
+void mark_vertical_stair_blocking(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], 
+    Stair stairs[], int num_stairs);
 #endif

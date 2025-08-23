@@ -156,6 +156,8 @@ int main(void) {
     initialize_maze(maze);
     initialize_players(players);
     initialize_stairs(stairs, &num_stairs);
+    //Block intermediate stair cells
+    mark_vertical_stair_blocking(maze, stairs, num_stairs);
     initialize_poles(poles, &num_poles);
     initialize_walls(walls, &num_walls);
     place_random_flag(flag, maze, walls, num_walls);
