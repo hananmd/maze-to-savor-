@@ -27,12 +27,17 @@
 #define DIR_SOUTH 2
 #define DIR_WEST 3
 #define DIR_EMPTY -1
-#define DIR_EMPTY -1
+
+// Stair directions (Rule 6)
+#define STAIR_UP_ONLY 0
+#define STAIR_DOWN_ONLY 1
+#define STAIR_BIDIRECTIONAL 2
 
 // Structures
 typedef struct {
     int start_floor, start_w, start_l;
     int end_floor, end_w, end_l;
+    int direction_type; // Rule 6: 0=up only, 1=down only, 2=bidirectional
 } Stair;
 
 typedef struct {
@@ -54,13 +59,19 @@ typedef struct {
 } Cell;
 
 typedef struct {
-    int pos[3];              // floor, width, length
-    int in_game;             // 0 = in starting area, 1 = in maze
-    int direction;           // current direction
-    int movement_points;     // starts at 100
-    int roll_count;          // for direction dice every 4th roll
-    int entered_maze;        // flag to track if player has entered maze
+    int pos[3];                // floor, width, length
+    int in_game;               // 0 = in starting area, 1 = in maze
+    int direction;             // current direction
+    int movement_points;       // starts at 100
+    int roll_count;           // for direction dice every 4th roll
+    int entered_maze;         // flag to track if player has entered maze
+    int captured;             // Rule 5: flag for captured players
+    int capture_start_pos[3]; // Rule 5: starting position when captured
 } Player;
+
+// Global variables for Rule 6
+extern int stair_change_counter; // Counter for rounds to change stair directions
+extern int rounds_completed;     // Total rounds completed
 
 // Function declarations
 void initialize_maze(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]);
@@ -68,7 +79,15 @@ void initialize_players(Player players[3]);
 void initialize_stairs(Stair stairs[], int *num_stairs);
 void initialize_poles(Pole poles[], int *num_poles);
 void initialize_walls(Wall walls[], int *num_walls);
-void place_random_flag(int flag[3], Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], Wall walls[], int num_walls);
+void place_random_flag(int flag[3]);
+
+// Rule 6: PDF reading and stair management functions
+int read_stairs_from_pdf(const char* filename, Stair stairs[], int* num_stairs);
+int read_poles_from_pdf(const char* filename, Pole poles[], int* num_poles);
+int read_walls_from_pdf(const char* filename, Wall walls[], int* num_walls);
+void randomize_stair_directions(Stair stairs[], int num_stairs);
+void update_stair_directions(Stair stairs[], int num_stairs);
+int check_round_completion(void);
 
 int roll_movement_dice(void);
 int roll_direction_dice(void);
@@ -88,7 +107,23 @@ int is_wall_blocking(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH],
 int find_stair_at(Stair stairs[], int num_stairs, int floor, int w, int l);
 int find_pole_at(Pole poles[], int num_poles, int floor, int w, int l);
 int check_flag_capture(Player *player, const int flag[3]);
-int is_valid_cell(int floor, int w, int l);
+int is_valid_position(int floor, int w, int l);
 int can_move_to(int floor, int w, int l, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]);
+
+// Rule 5: Player capture functions
+int check_player_collision(Player players[3], int current_player, int new_floor, int new_w, int new_l);
+void capture_player(Player *captured_player, int captured_id);
+void reset_captured_player(Player *player, int player_id);
+
+void display_game_state(Player players[3], Stair stairs[], int num_stairs,
+                       Pole poles[], int num_poles, Wall walls[], int num_walls,
+                       int flag[3]);
+void wait_for_enter(const char *prompt);
+void play_turn(int player_id, Player players[3],
+               Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH],
+               Stair stairs[], int num_stairs,
+               Pole poles[], int num_poles,
+               Wall walls[], int num_walls,
+               int flag[3]);
 
 #endif
