@@ -4,17 +4,19 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
-#define NUM_FLOORS      3
-#define FLOOR_WIDTH     10
-#define FLOOR_LENGTH    25
+// Maze dimensions
+#define NUM_FLOORS 3
+#define FLOOR_WIDTH 10
+#define FLOOR_LENGTH 25
 
-// Starting area
-#define START_AREA_W_MIN  6
-#define START_AREA_W_MAX  9
-#define START_AREA_L_MIN  8
-#define START_AREA_L_MAX  16
+// Starting area on Floor 0
+#define START_AREA_W_MIN 6
+#define START_AREA_W_MAX 9
+#define START_AREA_L_MIN 8
+#define START_AREA_L_MAX 16
 
 // Player IDs
 #define PLAYER_A 0
@@ -28,9 +30,9 @@
 #define DIR_WEST  3
 
 // Max counts
-#define MAX_STAIRS  10
-#define MAX_POLES   10
-#define MAX_WALLS   20
+#define MAX_STAIRS 10
+#define MAX_POLES  10
+#define MAX_WALLS  20
 
 // Structures
 typedef struct {
@@ -54,17 +56,14 @@ typedef struct {
     int is_valid;
     int is_starting_area;
     int has_wall;
-    int consumable_value;
-    int bonus_value;
-    int multiplier;
 } Cell;
 
 typedef struct {
-    int pos[3];             // [floor, width, length]
-    int movement_points;
-    int direction;
-    int in_game;
-    int captured;           // 1 if captured by another player
+    int pos[3];          // floor, width, length
+    int in_game;         // 0 = in starting area, 1 = in maze
+    int direction;       // current direction
+    int movement_points; // starts at 100
+    int roll_count;      // for direction dice every 4th roll
 } Player;
 
 // Function declarations
@@ -73,13 +72,20 @@ void initialize_players(Player players[3]);
 void initialize_stairs(Stair stairs[], int *num_stairs);
 void initialize_poles(Pole poles[], int *num_poles);
 void initialize_walls(Wall walls[], int *num_walls);
-void initialize_consumables_and_bonuses(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]);
-void place_random_flag(int flag[3], Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], Wall walls[], int num_walls);
-int is_wall_blocking(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int floor, int w1, int l1, int w2, int l2);
-void apply_stair_teleport(Player *player, Stair stairs[], int num_stairs);
-void apply_pole_teleport(Player *player, Pole poles[], int num_poles);
-int check_flag_capture(Player *player, int flag[3]);
-int is_game_over(Player players[3], int flag[3]);
-void print_player_positions(Player players[3]);
+int roll_movement_dice(void);
+int roll_direction_dice(void);
+void enter_maze(Player *player, int player_id);
+void move_player_with_teleport(Player *player,
+                               Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH],
+                               Stair stairs[], int num_stairs,
+                               Pole poles[], int num_poles,
+                               Wall walls[], int num_walls,
+                               int steps);
+int is_wall_blocking(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH],
+                     int floor, int w1, int l1, int w2, int l2);
+void place_random_flag(int flag[3],
+                       Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH],
+                       Wall walls[], int num_walls);
+int check_flag_capture(Player *player, const int flag[3]);
 
-#endif // GAME_H
+#endif
