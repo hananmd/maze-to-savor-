@@ -13,8 +13,8 @@
 
 // Max counts
 #define MAX_STAIRS 10
-#define MAX_POLES  10
-#define MAX_WALLS  20
+#define MAX_POLES 10
+#define MAX_WALLS 20
 
 // Player IDs
 #define PLAYER_A 0
@@ -23,9 +23,11 @@
 
 // Directions
 #define DIR_NORTH 0
-#define DIR_EAST  1
+#define DIR_EAST 1
 #define DIR_SOUTH 2
-#define DIR_WEST  3
+#define DIR_WEST 3
+#define DIR_EMPTY -1
+#define DIR_EMPTY -1
 
 // Structures
 typedef struct {
@@ -52,11 +54,12 @@ typedef struct {
 } Cell;
 
 typedef struct {
-    int pos[3];          // floor, width, length
-    int in_game;         // 0 = in starting area, 1 = in maze
-    int direction;       // current direction
-    int movement_points; // starts at 100
-    int roll_count;      // for direction dice every 4th roll
+    int pos[3];              // floor, width, length
+    int in_game;             // 0 = in starting area, 1 = in maze
+    int direction;           // current direction
+    int movement_points;     // starts at 100
+    int roll_count;          // for direction dice every 4th roll
+    int entered_maze;        // flag to track if player has entered maze
 } Player;
 
 // Function declarations
@@ -77,10 +80,15 @@ void move_player_with_teleport(Player *player,
                                Pole poles[], int num_poles,
                                Wall walls[], int num_walls,
                                int steps);
+
 int is_wall_blocking(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH],
-                     int floor, int w1, int l1, int w2, int l2);
+                     int start_floor, int start_w, int start_l,
+                     int end_floor, int end_w, int end_l);
+
 int find_stair_at(Stair stairs[], int num_stairs, int floor, int w, int l);
 int find_pole_at(Pole poles[], int num_poles, int floor, int w, int l);
 int check_flag_capture(Player *player, const int flag[3]);
+int is_valid_cell(int floor, int w, int l);
+int can_move_to(int floor, int w, int l, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]);
 
 #endif
