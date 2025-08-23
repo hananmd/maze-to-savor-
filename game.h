@@ -11,7 +11,7 @@
 #define FLOOR_WIDTH     10
 #define FLOOR_LENGTH    25
 
-// Starting area on Floor 0
+// Starting area on Floor 0 (Rule 1: 4 blocks width, 9 blocks length, starting at 8 blocks along length)
 #define START_AREA_W_MIN  6
 #define START_AREA_W_MAX  9
 #define START_AREA_L_MIN  8
@@ -83,8 +83,10 @@ typedef struct {
     int captured;           // 1 if captured
     int capture_start_pos[3];
     int bawana_effect;      // 0 = none, 1 = food poisoning, etc.
-    int bawana_turns_left;
-    int bawana_random_mp;
+    int bawana_turns_left;  // turns remaining for bawana effects
+    int bawana_random_mp;   // random movement points from bawana
+    int disoriented_turns;  // turns remaining for disorientation
+    int food_poisoning_turns; // turns remaining for food poisoning
 } Player;
 
 // Function declarations
@@ -108,5 +110,8 @@ int check_flag_capture(Player *player, const int flag[3]);
 void check_player_capture(Player players[3], int current_player);
 void update_stair_directions(Stair stairs[], int num_stairs);
 void reset_to_bawana(Player *player);
+void apply_bawana_effect(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]);
+int is_valid_position(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int floor, int w, int l);
+void handle_bawana_turns(Player *player);
 
 #endif
