@@ -21,7 +21,7 @@ void initialize_maze(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]) {
             maze[0][w][l].bonus_value = 0;
             maze[0][w][l].multiplier = 1;
         }
-    }
+    } 
 
     // Floor 1: Two rectangular areas (10×8) connected by bridge (4×9)
     // First area: [1,0,0] to [1,9,7]
