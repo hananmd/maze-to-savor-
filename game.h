@@ -6,12 +6,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
 
 #define NUM_FLOORS      3
 #define FLOOR_WIDTH     10
 #define FLOOR_LENGTH    25
 
-// Starting area on Floor 0
+// Starting area on Floor 0 - corrected based on requirements
 #define START_AREA_W_MIN  6
 #define START_AREA_W_MAX  9
 #define START_AREA_L_MIN  8
@@ -27,7 +28,6 @@
 #define DIR_EAST  1
 #define DIR_SOUTH 2
 #define DIR_WEST  3
-#define DIR_EMPTY -1
 
 // Stair directions (Rule 6)
 #define STAIR_UP_ONLY       0
@@ -80,7 +80,7 @@ typedef struct {
     int roll_count;         // for direction dice every 4th roll
     int captured;           // 1 if captured
     int capture_start_pos[3]; // starting position when captured
-    int bawana_effect;      // 0 = none, 1 = food poisoning, 2 = disoriented, 3 = triggered, 4 = happy
+    int bawana_effect;      // 0 = none, 1-5 = effect types
     int bawana_turns_left;  // countdown for effects
     int bawana_random_mp;   // random MP value if applicable
 } Player;
@@ -101,10 +101,11 @@ void move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH
 int is_wall_blocking(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int floor, int w1, int l1, int w2, int l2);
 int find_stair_at(Stair stairs[], int num_stairs, int floor, int w, int l);
 int find_pole_at(Pole poles[], int num_poles, int floor, int w, int l);
-void place_random_flag(int flag[3], Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], Wall walls[], int num_walls);
+void place_random_flag(int flag[3], Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]);
 int check_flag_capture(Player *player, const int flag[3]);
 void check_player_capture(Player players[3], int current_player);
 void update_stair_directions(Stair stairs[], int num_stairs);
 void reset_to_bawana(Player *player);
+void apply_bawana_effect(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int player_id);
 
 #endif
