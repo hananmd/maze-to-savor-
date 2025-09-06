@@ -12,7 +12,7 @@
 #define FLOOR_WIDTH     10
 #define FLOOR_LENGTH    25
 
-// Starting area on Floor 0 - corrected based on requirements
+// Starting area on Floor 0
 #define START_AREA_W_MIN  6
 #define START_AREA_W_MAX  9
 #define START_AREA_L_MIN  8
@@ -29,22 +29,31 @@
 #define DIR_SOUTH 2
 #define DIR_WEST  3
 
-// Stair directions (Rule 6)
+// Stair directions
 #define STAIR_UP_ONLY       0
 #define STAIR_DOWN_ONLY     1
 #define STAIR_BIDIRECTIONAL 2
 
-// Bawana Cell Types (Rule 7)
+// Bawana Cell Types (for Cell.bawana_cell_type initialization)
 #define BA_FOOD_POISONING   0
 #define BA_DISORIENTED      1
 #define BA_TRIGGERED        2
 #define BA_HAPPY            3
 #define BA_RANDOM_MP        4
 
+// Bawana EFFECT STATES (for Player.bawana_effect runtime state)
+#define EFFECT_NONE             0
+#define EFFECT_FOOD_POISONING   1
+#define EFFECT_DISORIENTED      2
+#define EFFECT_TRIGGERED        3
+#define EFFECT_HAPPY            4
+#define EFFECT_RANDOM_MP        5
+
 // Max counts
 #define MAX_STAIRS  10
 #define MAX_POLES   10
 #define MAX_WALLS   20
+#define MAX_LOOP_HISTORY 100
 
 // Structures
 typedef struct {
@@ -70,6 +79,7 @@ typedef struct {
     int is_starting_area;
     int has_wall;
     int bawana_cell_type; // -1 = not Bawana, 0-4 = effect type
+    int is_blocked_by_stair; // For intermediate floors
 } Cell;
 
 typedef struct {
@@ -102,9 +112,9 @@ void enter_maze(Player *player, int player_id);
 void move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH],
                                Stair stairs[], int num_stairs,
                                Pole poles[], int num_poles,
-                               Wall walls[], int num_walls, int steps);
+                               Wall walls[], int num_walls, int steps, int player_id, const int flag[3]);
 int is_wall_blocking(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int floor, int w1, int l1, int w2, int l2);
-int find_stair_at(Stair stairs[], int num_stairs, int floor, int w, int l);
+int find_all_stairs_at(Stair stairs[], int num_stairs, int floor, int w, int l, int result_indices[]);
 int find_pole_at(Pole poles[], int num_poles, int floor, int w, int l);
 void place_random_flag(int flag[3], Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]);
 int check_flag_capture(Player *player, const int flag[3]);
@@ -112,5 +122,8 @@ void check_player_capture(Player players[3], int current_player);
 void update_stair_directions(Stair stairs[], int num_stairs);
 void reset_to_bawana(Player *player);
 void apply_bawana_effect(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int player_id);
+int is_in_starting_area(int floor, int w, int l);
+void reset_to_starting_area(Player *player, int player_id);
+int manhattan_distance(int f1, int w1, int l1, int f2, int w2, int l2);
 
 #endif
