@@ -80,6 +80,7 @@ typedef struct {
     int has_wall;
     int bawana_cell_type; // -1 = not Bawana, 0-4 = effect type
     int is_blocked_by_stair; // For intermediate floors
+    int is_bawana_entrance;   // 1 if this is the Bawana entrance cell
 } Cell;
 
 typedef struct {
@@ -114,7 +115,7 @@ int move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH]
                                Stair stairs[], int num_stairs,
                                Pole poles[], int num_poles,
                                Wall walls[], int num_walls, int steps, int player_id, const int flag[3]);
-int is_wall_blocking(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int floor, int w1, int l1, int w2, int l2);
+int is_wall_blocking(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int floor, int w1, int l1, int w2, int l2, Wall walls[], int num_walls);
 int find_all_stairs_at(Stair stairs[], int num_stairs, int floor, int w, int l, int result_indices[]);
 int find_pole_at(Pole poles[], int num_poles, int floor, int w, int l);
 void place_random_flag(int flag[3], Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]);
@@ -128,5 +129,7 @@ void reset_to_starting_area(Player *player, int player_id);
 int manhattan_distance(int f1, int w1, int l1, int f2, int w2, int l2);
 const char* get_direction_name(int direction);
 const char* format_position(int floor, int w, int l);
+int can_enter_bawana_entrance(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int new_w, int new_l);
+int check_path_validity(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], Wall walls[], int num_walls, int steps, int player_id);
 
 #endif

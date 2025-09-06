@@ -1,5 +1,6 @@
 // game.c
 #include "game.h"
+#include <stdlib.h>
 
 const char* get_direction_name(int direction) {
     switch(direction) {
@@ -13,9 +14,6 @@ const char* get_direction_name(int direction) {
 
 const char* format_position(int floor, int w, int l) {
     static char buffer[20];
-    // Convert to a single cell number format for output
-    // This is a simplified format - you may need to adjust based on your specific numbering system
-    int cell_number = floor * 250 + w * 25 + l;
     snprintf(buffer, sizeof(buffer), "[%d,%d,%d]", floor, w, l);
     return buffer;
 }
@@ -29,6 +27,7 @@ void initialize_maze(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]) {
                 maze[f][w][l].has_wall = 0;
                 maze[f][w][l].bawana_cell_type = -1;
                 maze[f][w][l].is_blocked_by_stair = 0;
+                maze[f][w][l].is_bawana_entrance = 0;
             }
         }
     }
@@ -77,6 +76,10 @@ void initialize_maze(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]) {
         }
     }
 
+    // Mark Bawana entrance cell
+    maze[0][9][19].is_valid = 1;
+    maze[0][9][19].is_bawana_entrance = 1;
+
     // Bawana walls
     for (int w = 6; w <= 9; w++) {
         maze[0][w][20].has_wall = 1;
@@ -84,8 +87,6 @@ void initialize_maze(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]) {
     for (int l = 20; l <= 24; l++) {
         maze[0][6][l].has_wall = 1;
     }
-
-    maze[0][9][19].is_valid = 1;
 
     // Assign Bawana effects
     int bawana_interior_cells[12][2] = {
@@ -304,14 +305,19 @@ int is_valid_position(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int floo
     return maze[floor][w][l].is_valid;
 }
 
-int is_wall_blocking(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int floor, int w1, int l1, int w2, int l2) {
-    Wall walls[MAX_WALLS];
-    int num_walls;
-    initialize_walls(walls, &num_walls);
+int can_enter_bawana_entrance(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int new_w, int new_l) {
+    if (maze[0][new_w][new_l].is_bawana_entrance) {
+        if (player->movement_points > 0) {
+            return 0;
+        }
+    }
+    return 1;
+}
 
+int is_wall_blocking(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int floor, int w1, int l1, int w2, int l2, Wall walls[], int num_walls) {
     for (int i = 0; i < num_walls; i++) {
         if (walls[i].floor != floor) continue;
-        if (walls[i].start_w == walls[i].end_w) { // Vertical wall
+        if (walls[i].start_w == walls[i].end_w) {
             int wall_w = walls[i].start_w;
             int wall_l_min = (walls[i].start_l < walls[i].end_l) ? walls[i].start_l : walls[i].end_l;
             int wall_l_max = (walls[i].start_l > walls[i].end_l) ? walls[i].start_l : walls[i].end_l;
@@ -320,7 +326,7 @@ int is_wall_blocking(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int floor
                 return 1;
             }
         }
-        if (walls[i].start_l == walls[i].end_l) { // Horizontal wall
+        if (walls[i].start_l == walls[i].end_l) {
             int wall_l = walls[i].start_l;
             int wall_w_min = (walls[i].start_w < walls[i].end_w) ? walls[i].start_w : walls[i].end_w;
             int wall_w_max = (walls[i].start_w > walls[i].end_w) ? walls[i].start_w : walls[i].end_w;
@@ -360,6 +366,47 @@ int manhattan_distance(int f1, int w1, int l1, int f2, int w2, int l2) {
     return abs(f1 - f2) + abs(w1 - w2) + abs(l1 - l2);
 }
 
+// NEW: Check if entire path is valid before any movement
+int check_path_validity(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH],
+                        Wall walls[], int num_walls, int steps, int player_id) {
+    int current_w = player->pos[1];
+    int current_l = player->pos[2];
+    int current_floor = player->pos[0];
+    
+    for (int s = 0; s < steps; s++) {
+        int new_w = current_w;
+        int new_l = current_l;
+        
+        switch (player->direction) {
+            case DIR_NORTH: new_l--; break;
+            case DIR_EAST:  new_w++; break;
+            case DIR_SOUTH: new_l++; break;
+            case DIR_WEST:  new_w--; break;
+        }
+        
+        // Check if next position is valid
+        if (!is_valid_position(maze, current_floor, new_w, new_l)) {
+            return 0; // Path blocked by invalid position
+        }
+        
+        // Check if wall blocks movement
+        if (is_wall_blocking(maze, current_floor, current_w, current_l, new_w, new_l, walls, num_walls)) {
+            return -1; // Path blocked by wall (different from invalid position)
+        }
+        
+        // Check Bawana entrance restriction
+        if (!can_enter_bawana_entrance(player, maze, new_w, new_l)) {
+            return 0; // Path blocked by Bawana entrance rule
+        }
+        
+        // Update position for next iteration
+        current_w = new_w;
+        current_l = new_l;
+    }
+    
+    return 1; // Path is valid
+}
+
 void apply_bawana_effect(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int player_id) {
     int f = player->pos[0];
     int w = player->pos[1];
@@ -375,7 +422,7 @@ void apply_bawana_effect(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOO
         case BA_FOOD_POISONING:
             player->bawana_effect = EFFECT_FOOD_POISONING;
             player->bawana_turns_left = 3;
-            printf("%c eats from Bawana and have a bad case of food poisoning. Will need three rounds to recover.\n", player_name);
+            printf("%c eats from Bawana and has a bad case of food poisoning. Will need three rounds to recover.\n", player_name);
             break;
         case BA_DISORIENTED:
             player->bawana_effect = EFFECT_DISORIENTED;
@@ -387,7 +434,7 @@ void apply_bawana_effect(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOO
             break;
         case BA_TRIGGERED:
             player->bawana_effect = EFFECT_TRIGGERED;
-            player->bawana_turns_left = 4;
+            player->bawana_turns_left = 4; // Fixed to 4 turns
             player->movement_points += 50;
             player->pos[1] = 9; player->pos[2] = 19;
             player->direction = DIR_NORTH;
@@ -395,7 +442,7 @@ void apply_bawana_effect(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOO
             break;
         case BA_HAPPY:
             player->bawana_effect = EFFECT_HAPPY;
-            player->bawana_turns_left = 4;
+            player->bawana_turns_left = 0; // Fixed: Happy has no countdown
             player->movement_points += 200;
             player->pos[1] = 9; player->pos[2] = 19;
             player->direction = DIR_NORTH;
@@ -420,31 +467,49 @@ int is_in_starting_area(int floor, int w, int l) {
 }
 
 void reset_to_starting_area(Player *player, int player_id) {
-    printf("Player trapped in infinite loop – resetting to starting area. Movement points preserved.\n");
+    char player_name = 'A' + player_id;
+    printf("Player %c trapped in Infinite Loop - resetting to starting area. Movement points preserved.\n", player_name);
+    player->pos[0] = 0;
     switch (player_id) {
         case PLAYER_A:
-            player->pos[0] = 0; player->pos[1] = 6; player->pos[2] = 12;
+            player->pos[1] = 6;
+            player->pos[2] = 12;
+            player->direction = DIR_NORTH;
             break;
         case PLAYER_B:
-            player->pos[0] = 0; player->pos[1] = 9; player->pos[2] = 8;
+            player->pos[1] = 9;
+            player->pos[2] = 8;
+            player->direction = DIR_WEST;
             break;
         case PLAYER_C:
-            player->pos[0] = 0; player->pos[1] = 9; player->pos[2] = 16;
+            player->pos[1] = 9;
+            player->pos[2] = 16;
+            player->direction = DIR_EAST;
             break;
     }
     player->in_game = 0;
-    player->direction = (player_id == PLAYER_A) ? DIR_NORTH :
-                       (player_id == PLAYER_B) ? DIR_WEST : DIR_EAST;
+    player->captured = 0;
 }
 
 int move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH],
                                Stair stairs[], int num_stairs,
                                Pole poles[], int num_poles,
                                Wall walls[], int num_walls, int steps, int player_id, const int flag[3]) {
+    
+    // First, check if entire path is valid
+    int path_status = check_path_validity(player, maze, walls, num_walls, steps, player_id);
+    
+    if (path_status == 0) {
+        return 0; // Path invalid, no movement, no MP cost
+    }
+    if (path_status == -1) {
+        return 1; // Path blocked by wall, no movement, 2 MP cost
+    }
+    
+    // Path is valid, proceed with movement
     int visited[MAX_LOOP_HISTORY][3];
     int visit_count = 0;
     char player_name = 'A' + player_id;
-    int blocked_by_wall = 0;
 
     for (int s = 0; s < steps; s++) {
         int old_f = player->pos[0];
@@ -470,28 +535,21 @@ int move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH]
             case DIR_WEST:  new_w--; break;
         }
 
-        if (!is_valid_position(maze, old_f, new_w, new_l)) {
-            return blocked_by_wall;
-        }
-
-        if (is_wall_blocking(maze, old_f, old_w, old_l, new_w, new_l)) {
-            blocked_by_wall = 1;
-            return blocked_by_wall;
-        }
-
         player->pos[1] = new_w;
         player->pos[2] = new_l;
 
+        // Check for infinite loop
         for (int i = 0; i < visit_count - 1; i++) {
             if (visited[i][0] == player->pos[0] &&
                 visited[i][1] == player->pos[1] &&
                 visited[i][2] == player->pos[2]) {
                 printf("Infinite loop detected at [%d,%d,%d]!\n", player->pos[0], player->pos[1], player->pos[2]);
                 reset_to_starting_area(player, player_id);
-                return blocked_by_wall;
+                return 0;
             }
         }
 
+        // Handle stairs
         int stair_indices[MAX_STAIRS];
         int num_found = find_all_stairs_at(stairs, num_stairs, old_f, new_w, new_l, stair_indices);
 
@@ -532,7 +590,7 @@ int move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH]
 
                 if (candidate_count > 1) {
                     chosen_stair = candidates[rand() % candidate_count];
-                    printf("Multiple stairs at same distance – randomly chose one.\n");
+                    printf("Multiple stairs at same distance - randomly chose one.\n");
                 } else {
                     chosen_stair = best_index;
                 }
@@ -558,7 +616,7 @@ int move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH]
                        player->pos[0], player->pos[1], player->pos[2], player->pos[0]);
 
                 if (is_in_starting_area(player->pos[0], player->pos[1], player->pos[2])) {
-                    printf("%c fell into starting area via stair – must roll 6 to re-enter.\n", player_name);
+                    printf("%c fell into starting area via stair - must roll 6 to re-enter.\n", player_name);
                     player->in_game = 0;
                 }
 
@@ -566,6 +624,7 @@ int move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH]
             }
         }
 
+        // Handle poles
         int pole_index = find_pole_at(poles, num_poles, old_f, new_w, new_l);
         if (pole_index != -1) {
             Pole *pole = &poles[pole_index];
@@ -579,19 +638,20 @@ int move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH]
                    player->pos[0], player->pos[1], player->pos[2], player->pos[0]);
 
             if (is_in_starting_area(player->pos[0], player->pos[1], player->pos[2])) {
-                printf("%c fell into starting area via pole – must roll 6 to re-enter.\n", player_name);
+                printf("%c fell into starting area via pole - must roll 6 to re-enter.\n", player_name);
                 player->in_game = 0;
             }
 
             continue;
         }
 
+        // Apply Bawana effects if in Bawana area
         if (old_f == 0 && new_w >= 6 && new_w <= 9 && new_l >= 20 && new_l <= 24) {
             apply_bawana_effect(player, maze, player_id);
         }
     }
     
-    return blocked_by_wall;
+    return 0; // Movement successful, no wall blocking
 }
 
 void place_random_flag(int flag[3], Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]) {

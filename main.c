@@ -45,42 +45,11 @@ void play_turn(int player_id, Player players[3], Cell maze[NUM_FLOORS][FLOOR_WID
         return;
     }
     
-    wait_for_enter("Press Enter to roll movement die: ");
-    int move_roll = roll_movement_dice();
-    printf("Movement die: %d\n", move_roll);
+    // NEW: Check if this is a direction dice roll (every 4th roll after entering)
+    int is_direction_dice_roll = (p->in_game && (p->roll_count % 4 == 3));
     
-    // Handle starting area logic
-    if (!p->in_game) {
-        if (move_roll == 6) {
-            enter_maze(p, player_id);
-            printf("%c is at the starting area and rolls 6 on the movement dice and is placed on %s of the maze.\n", 
-                   player_name, format_position(p->pos[0], p->pos[1], p->pos[2]));
-            
-            // Player just entered - no movement this turn, wait for next turn
-            printf("%c moved 0 cells that cost 0 movement points and is left with %d and is moving in the %s.\n", 
-                   player_name, p->movement_points, get_direction_name(p->direction));
-            return;
-        } else {
-            printf("%c is at the starting area and rolls %d on the movement dice cannot enter the maze.\n", 
-                   player_name, move_roll);
-            printf("%c moved 0 cells that cost 0 movement points and is left with %d and is moving in the %s.\n", 
-                   player_name, p->movement_points, get_direction_name(p->direction));
-            
-            if (p->movement_points <= 0) {
-                reset_to_bawana(p);
-            }
-            return;
-        }
-    }
-
-    // Player is in maze - handle movement
-    int original_move = move_roll;
-    int is_direction_dice_roll = (p->roll_count % 4 == 0);
-    int movement_cost = 0;
-    
-    printf("%c rolls and %d on the movement dice", player_name, move_roll);
-
     if (is_direction_dice_roll) {
+        wait_for_enter("Press Enter to roll direction die: ");
         int dir_roll = roll_direction_dice();
         const char* rolled_direction = "";
         
@@ -100,27 +69,82 @@ void play_turn(int player_id, Player players[3], Cell maze[NUM_FLOORS][FLOOR_WID
             rolled_direction = "Empty";
         }
         
+        printf("Direction die: %d (%s)\n", dir_roll, rolled_direction);
+        
         if (dir_roll == 1 || dir_roll == 6) {
-            printf(" and Empty on the direction dice, direction unchanged (%s)", 
-                   get_direction_name(p->direction));
+            printf("Direction unchanged: %s\n", get_direction_name(p->direction));
         } else {
-            printf(" and %s on the direction dice, changes direction to %s", 
-                   rolled_direction, get_direction_name(p->direction));
+            printf("Direction changed to: %s\n", get_direction_name(p->direction));
         }
-    } else {
-        printf(" and moves %s", get_direction_name(p->direction));
+    }
+    
+    wait_for_enter("Press Enter to roll movement die: ");
+    int move_roll = roll_movement_dice();
+    printf("Movement die: %d\n", move_roll);
+    
+    // Handle starting area logic
+    if (!p->in_game) {
+        if (move_roll == 6) {
+            enter_maze(p, player_id);
+            printf("%c is at the starting area and rolls 6 on the movement dice and is placed on %s of the maze.\n", 
+                   player_name, format_position(p->pos[0], p->pos[1], p->pos[2]));
+            
+            printf("%c moved 0 cells that cost 0 movement points and is left with %d and is moving in the %s.\n", 
+                   player_name, p->movement_points, get_direction_name(p->direction));
+            
+            p->roll_count++;
+            return;
+        } else {
+            printf("%c is at the starting area and rolls %d on the movement dice cannot enter the maze.\n", 
+                   player_name, move_roll);
+            printf("%c moved 0 cells that cost 0 movement points and is left with %d and is moving in the %s.\n", 
+                   player_name, p->movement_points, get_direction_name(p->direction));
+            
+            if (p->movement_points <= 0) {
+                reset_to_bawana(p);
+            }
+            
+            p->roll_count++;
+            return;
+        }
     }
 
+    // Player is in maze - handle movement
+    int original_move = move_roll;
+    int movement_cost = 0;
+    
     // Apply Bawana effects on movement
     if (p->bawana_effect == EFFECT_DISORIENTED) {
         p->direction = rand() % 4;
-        printf(" and is disoriented and move in the %s", get_direction_name(p->direction));
     } else if (p->bawana_effect == EFFECT_TRIGGERED) {
         move_roll *= 2;
-        printf(" and is triggered and move in the %s", get_direction_name(p->direction));
     }
 
+    // Store old position
     int old_pos[3] = {p->pos[0], p->pos[1], p->pos[2]};
+    
+    // Print initial movement message based on dice rolls
+    if (is_direction_dice_roll) {
+        printf("%c rolls and %d on the movement dice", player_name, original_move);
+        
+        if (p->bawana_effect == EFFECT_DISORIENTED) {
+            printf(" and is disoriented and move in the %s", get_direction_name(p->direction));
+        } else if (p->bawana_effect == EFFECT_TRIGGERED) {
+            printf(" and is triggered and move in the %s", get_direction_name(p->direction));
+        } else {
+            printf(" and moves %s", get_direction_name(p->direction));
+        }
+    } else {
+        printf("%c rolls and %d on the movement dice", player_name, original_move);
+        
+        if (p->bawana_effect == EFFECT_DISORIENTED) {
+            printf(" and is disoriented and move in the %s", get_direction_name(p->direction));
+        } else if (p->bawana_effect == EFFECT_TRIGGERED) {
+            printf(" and is triggered and move in the %s", get_direction_name(p->direction));
+        } else {
+            printf(" and moves %s", get_direction_name(p->direction));
+        }
+    }
     
     // Try to move player
     int was_blocked_by_wall = move_player_with_teleport(p, maze, stairs, num_stairs, 
@@ -142,27 +166,24 @@ void play_turn(int player_id, Player players[3], Cell maze[NUM_FLOORS][FLOOR_WID
         printf("%c moved 0 cells that cost %d movement points and is left with %d and is moving in the %s.\n", 
                player_name, movement_cost, p->movement_points, get_direction_name(p->direction));
     } else {
-        int cells_moved = abs(old_pos[1] - p->pos[1]) + abs(old_pos[2] - p->pos[2]);
-        printf(" by %d cells and is now at %s.\n", move_roll, format_position(p->pos[0], p->pos[1], p->pos[2]));
-        
-        // Calculate movement cost based on cells moved
-        movement_cost = cells_moved; // 1 MP per cell moved
+        // Calculate actual movement cost based on dice roll
+        movement_cost = original_move; // Use original dice roll for MP cost
         p->movement_points -= movement_cost;
         
+        printf(" by %d cells and is now at %s.\n", move_roll, format_position(p->pos[0], p->pos[1], p->pos[2]));
+        
         printf("%c moved %d cells that cost %d movement points and is left with %d and is moving in the %s.\n", 
-               player_name, cells_moved, movement_cost, p->movement_points, get_direction_name(p->direction));
+               player_name, move_roll, movement_cost, p->movement_points, get_direction_name(p->direction));
     }
 
     // Handle other Bawana effects countdown
-    if (p->bawana_effect > EFFECT_NONE && p->bawana_effect != EFFECT_FOOD_POISONING) {
+    if (p->bawana_effect > EFFECT_NONE && p->bawana_effect != EFFECT_FOOD_POISONING && p->bawana_effect != EFFECT_HAPPY) {
         p->bawana_turns_left--;
         if (p->bawana_turns_left == 0) {
             if (p->bawana_effect == EFFECT_DISORIENTED) {
                 printf("%c has recovered from disorientation.\n", player_name);
             } else if (p->bawana_effect == EFFECT_TRIGGERED) {
                 printf("%c has recovered from being triggered.\n", player_name);
-            } else if (p->bawana_effect == EFFECT_HAPPY) {
-                printf("%c is no longer extra happy.\n", player_name);
             } else if (p->bawana_effect == EFFECT_RANDOM_MP) {
                 printf("%c's random movement point effect has expired.\n", player_name);
             }
@@ -198,7 +219,10 @@ void print_game_status(Player players[3], int flag[3]) {
             printf("In maze, MP: %d", players[i].movement_points);
             if (players[i].bawana_effect > EFFECT_NONE) {
                 const char* effect_names[] = {"None", "Food Poisoning", "Disoriented", "Triggered", "Happy", "Random MP"};
-                printf(", Bawana effect: %s (turns left: %d)", effect_names[players[i].bawana_effect], players[i].bawana_turns_left);
+                printf(", Bawana effect: %s", effect_names[players[i].bawana_effect]);
+                if (players[i].bawana_effect != EFFECT_HAPPY) {
+                    printf(" (turns left: %d)", players[i].bawana_turns_left);
+                }
             }
         } else {
             printf("In starting area, MP: %d", players[i].movement_points);
@@ -268,7 +292,7 @@ int main(void) {
     print_game_status(players, flag);
     
     int round = 1;
-    while (1) {
+    while (1) { 
         printf("\n=== Round %d ===\n", round);
         update_stair_directions(stairs, num_stairs);
         for (int i = 0; i < 3; i++) {
