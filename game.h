@@ -49,6 +49,12 @@
 #define EFFECT_HAPPY            4
 #define EFFECT_RANDOM_MP        5
 
+// Blocking reasons for movement
+#define BLOCK_NONE              0
+#define BLOCK_WALL              1
+#define BLOCK_INVALID_CELL      2
+#define BLOCK_BAWANA_ENTRANCE   3
+
 // Max counts
 #define MAX_STAIRS  10
 #define MAX_POLES   10
@@ -111,10 +117,12 @@ int read_seed_from_file(const char *filename);
 int roll_movement_dice(void);
 int roll_direction_dice(void);
 void enter_maze(Player *player, int player_id);
+void enter_maze_like_player_a(Player *player);
 int move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH],
                                Stair stairs[], int num_stairs,
                                Pole poles[], int num_poles,
-                               Wall walls[], int num_walls, int steps, int player_id, const int flag[3]);
+                               Wall walls[], int num_walls, int steps, int player_id, const int flag[3],
+                               int *movement_cost, int *actual_steps, int *blocking_reason);
 int is_wall_blocking(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int floor, int w1, int l1, int w2, int l2, Wall walls[], int num_walls);
 int find_all_stairs_at(Stair stairs[], int num_stairs, int floor, int w, int l, int result_indices[]);
 int find_pole_at(Pole poles[], int num_poles, int floor, int w, int l);
@@ -122,7 +130,7 @@ void place_random_flag(int flag[3], Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LEN
 int check_flag_capture(Player *player, const int flag[3]);
 void check_player_capture(Player players[3], int current_player);
 void update_stair_directions(Stair stairs[], int num_stairs);
-void reset_to_bawana(Player *player);
+void reset_to_bawana(Player *player, int player_id);
 void apply_bawana_effect(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int player_id);
 int is_in_starting_area(int floor, int w, int l);
 void reset_to_starting_area(Player *player, int player_id);
@@ -130,6 +138,7 @@ int manhattan_distance(int f1, int w1, int l1, int f2, int w2, int l2);
 const char* get_direction_name(int direction);
 const char* format_position(int floor, int w, int l);
 int can_enter_bawana_entrance(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int new_w, int new_l);
-int check_path_validity(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], Wall walls[], int num_walls, int steps, int player_id);
+int check_path_validity(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], Wall walls[], int num_walls, int steps, int player_id, int *blocking_step, int *blocking_reason);
+const char* get_blockage_reason_description(int blocking_reason);
 
 #endif
