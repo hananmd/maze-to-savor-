@@ -195,6 +195,129 @@ void initialize_walls(Wall walls[], int *num_walls) {
     walls[2].end_w = 8; walls[2].end_l = 2;
 }
 
+// File reading functions
+int read_seed_from_file(const char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        printf("Warning: Could not open %s. Using default seed.\n", filename);
+        return time(NULL);
+    }
+    
+    int seed;
+    if (fscanf(file, "%d", &seed) != 1) {
+        printf("Warning: Could not read seed from %s. Using default seed.\n", filename);
+        fclose(file);
+        return time(NULL);
+    }
+    
+    fclose(file);
+    return seed;
+}
+
+int read_stairs_from_file(const char *filename, Stair stairs[], int *num_stairs) {
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        printf("Warning: Could not open %s. Using default stairs.\n", filename);
+        return 0;
+    }
+    
+    *num_stairs = 0;
+    char line[256];
+    
+    while (fgets(line, sizeof(line), file) && *num_stairs < MAX_STAIRS) {
+        // Format: [start_floor, start_w, start_l, end_floor, end_w, end_l]
+        if (sscanf(line, "[%d, %d, %d, %d, %d, %d]",
+                   &stairs[*num_stairs].start_floor,
+                   &stairs[*num_stairs].start_w,
+                   &stairs[*num_stairs].start_l,
+                   &stairs[*num_stairs].end_floor,
+                   &stairs[*num_stairs].end_w,
+                   &stairs[*num_stairs].end_l) == 6) {
+            stairs[*num_stairs].direction_type = STAIR_BIDIRECTIONAL;
+            (*num_stairs)++;
+        }
+    }
+    
+    fclose(file);
+    printf("Loaded %d stairs from %s\n", *num_stairs, filename);
+    return 1;
+}
+
+int read_poles_from_file(const char *filename, Pole poles[], int *num_poles) {
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        printf("Warning: Could not open %s. Using default poles.\n", filename);
+        return 0;
+    }
+    
+    *num_poles = 0;
+    char line[256];
+    
+    while (fgets(line, sizeof(line), file) && *num_poles < MAX_POLES) {
+        // Format: [start_floor, end_floor, w, l]
+        if (sscanf(line, "[%d, %d, %d, %d]",
+                   &poles[*num_poles].start_floor,
+                   &poles[*num_poles].end_floor,
+                   &poles[*num_poles].w,
+                   &poles[*num_poles].l) == 4) {
+            (*num_poles)++;
+        }
+    }
+    
+    fclose(file);
+    printf("Loaded %d poles from %s\n", *num_poles, filename);
+    return 1;
+}
+
+int read_walls_from_file(const char *filename, Wall walls[], int *num_walls) {
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        printf("Warning: Could not open %s. Using default walls.\n", filename);
+        return 0;
+    }
+    
+    *num_walls = 0;
+    char line[256];
+    
+    while (fgets(line, sizeof(line), file) && *num_walls < MAX_WALLS) {
+        // Format: [floor, start_w, start_l, end_w, end_l]
+        if (sscanf(line, "[%d, %d, %d, %d, %d]",
+                   &walls[*num_walls].floor,
+                   &walls[*num_walls].start_w,
+                   &walls[*num_walls].start_l,
+                   &walls[*num_walls].end_w,
+                   &walls[*num_walls].end_l) == 5) {
+            (*num_walls)++;
+        }
+    }
+    
+    fclose(file);
+    printf("Loaded %d walls from %s\n", *num_walls, filename);
+    return 1;
+}
+
+int read_flag_from_file(const char *filename, int flag[3]) {
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        printf("Warning: Could not open %s. Using random flag placement.\n", filename);
+        return 0;
+    }
+    
+    char line[256];
+    if (fgets(line, sizeof(line), file)) {
+        // Format: [floor, w, l]
+        if (sscanf(line, "[%d, %d, %d]", &flag[0], &flag[1], &flag[2]) == 3) {
+            fclose(file);
+            printf("Loaded flag position [%d,%d,%d] from %s\n", flag[0], flag[1], flag[2], filename);
+            return 1;
+        }
+    }
+    
+    fclose(file);
+    printf("Warning: Could not read flag from %s. Using random flag placement.\n", filename);
+    return 0;
+}
+
 int roll_movement_dice(void) {
     return (rand() % 6) + 1;
 }

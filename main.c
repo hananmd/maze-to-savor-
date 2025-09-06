@@ -188,7 +188,10 @@ void print_game_status(Player players[3], int flag[3]) {
 }
 
 int main(void) {
-    srand((unsigned int)time(NULL));
+    // Read seed from file first
+    int seed = read_seed_from_file("seed.txt");
+    srand((unsigned int)seed);
+    printf("Using seed: %d\n", seed);
     
     Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH];
     Player players[3];
@@ -201,12 +204,30 @@ int main(void) {
     // Initialize game components
     initialize_maze(maze);
     initialize_players(players);
-    initialize_stairs(stairs, &num_stairs);
-    initialize_poles(poles, &num_poles);
-    initialize_walls(walls, &num_walls);
-    place_random_flag(flag, maze);
     
-    printf("=== Maze of UCSC ===\n");
+    // Try to read from files, fall back to defaults if files don't exist
+    if (!read_stairs_from_file("stairs.txt", stairs, &num_stairs)) {
+        initialize_stairs(stairs, &num_stairs);
+        printf("Using default stairs configuration.\n");
+    }
+    
+    if (!read_poles_from_file("poles.txt", poles, &num_poles)) {
+        initialize_poles(poles, &num_poles);
+        printf("Using default poles configuration.\n");
+    }
+    
+    if (!read_walls_from_file("walls.txt", walls, &num_walls)) {
+        initialize_walls(walls, &num_walls);
+        printf("Using default walls configuration.\n");
+    }
+    
+    // Try to read flag position from file, otherwise place randomly
+    if (!read_flag_from_file("flag.txt", flag)) {
+        place_random_flag(flag, maze);
+        printf("Flag randomly placed at [%d,%d,%d]\n", flag[0], flag[1], flag[2]);
+    }
+    
+    printf("\n=== Maze of UCSC ===\n");
     printf("Flag is placed at [%d,%d,%d]\n\n", flag[0], flag[1], flag[2]);
     
     print_game_status(players, flag);

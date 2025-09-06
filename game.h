@@ -91,13 +91,18 @@ void initialize_players(Player players[3]);
 void initialize_stairs(Stair stairs[], int *num_stairs);
 void initialize_poles(Pole poles[], int *num_poles);
 void initialize_walls(Wall walls[], int *num_walls);
+int read_stairs_from_file(const char *filename, Stair stairs[], int *num_stairs);
+int read_poles_from_file(const char *filename, Pole poles[], int *num_poles);
+int read_walls_from_file(const char *filename, Wall walls[], int *num_walls);
+int read_flag_from_file(const char *filename, int flag[3]);
+int read_seed_from_file(const char *filename);
 int roll_movement_dice(void);
 int roll_direction_dice(void);
 void enter_maze(Player *player, int player_id);
 void move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH],
                                Stair stairs[], int num_stairs,
                                Pole poles[], int num_poles,
-                               Wall walls[], int num_walls, int steps);
+                               Wall walls[], int num_walls, int steps, int player_id, const int flag[3]);
 int is_wall_blocking(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int floor, int w1, int l1, int w2, int l2);
 int find_stair_at(Stair stairs[], int num_stairs, int floor, int w, int l);
 int find_pole_at(Pole poles[], int num_poles, int floor, int w, int l);
