@@ -93,6 +93,7 @@ typedef struct {
     int bawana_effect;      // 0 = none, 1-5 = effect types
     int bawana_turns_left;  // countdown for effects
     int bawana_random_mp;   // random MP value if applicable
+    int just_entered;       // flag to indicate player just entered maze this turn
 } Player;
 
 // Function declarations
@@ -125,5 +126,7 @@ void apply_bawana_effect(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOO
 int is_in_starting_area(int floor, int w, int l);
 void reset_to_starting_area(Player *player, int player_id);
 int manhattan_distance(int f1, int w1, int l1, int f2, int w2, int l2);
+const char* get_direction_name(int direction);
+const char* format_position(int floor, int w, int l);
 
 #endif

@@ -1,6 +1,25 @@
 // game.c
 #include "game.h"
 
+const char* get_direction_name(int direction) {
+    switch(direction) {
+        case DIR_NORTH: return "North";
+        case DIR_EAST: return "East";
+        case DIR_SOUTH: return "South";
+        case DIR_WEST: return "West";
+        default: return "Unknown";
+    }
+}
+
+const char* format_position(int floor, int w, int l) {
+    static char buffer[20];
+    // Convert to a single cell number format for output
+    // This is a simplified format - you may need to adjust based on your specific numbering system
+    int cell_number = floor * 250 + w * 25 + l;
+    snprintf(buffer, sizeof(buffer), "[%d,%d,%d]", floor, w, l);
+    return buffer;
+}
+
 void initialize_maze(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]) {
     for (int f = 0; f < NUM_FLOORS; f++) {
         for (int w = 0; w < FLOOR_WIDTH; w++) {
@@ -110,6 +129,7 @@ void initialize_players(Player players[3]) {
     players[PLAYER_A].bawana_effect = EFFECT_NONE;
     players[PLAYER_A].bawana_turns_left = 0;
     players[PLAYER_A].bawana_random_mp = 0;
+    players[PLAYER_A].just_entered = 0;
 
     players[PLAYER_B].pos[0] = 0; players[PLAYER_B].pos[1] = 9; players[PLAYER_B].pos[2] = 8;
     players[PLAYER_B].in_game = 0;
@@ -120,6 +140,7 @@ void initialize_players(Player players[3]) {
     players[PLAYER_B].bawana_effect = EFFECT_NONE;
     players[PLAYER_B].bawana_turns_left = 0;
     players[PLAYER_B].bawana_random_mp = 0;
+    players[PLAYER_B].just_entered = 0;
 
     players[PLAYER_C].pos[0] = 0; players[PLAYER_C].pos[1] = 9; players[PLAYER_C].pos[2] = 16;
     players[PLAYER_C].in_game = 0;
@@ -130,6 +151,7 @@ void initialize_players(Player players[3]) {
     players[PLAYER_C].bawana_effect = EFFECT_NONE;
     players[PLAYER_C].bawana_turns_left = 0;
     players[PLAYER_C].bawana_random_mp = 0;
+    players[PLAYER_C].just_entered = 0;
 }
 
 void initialize_stairs(Stair stairs[], int *num_stairs) {
@@ -271,6 +293,7 @@ void enter_maze(Player *player, int player_id) {
             break;
     }
     player->in_game = 1;
+    player->just_entered = 1;
 }
 
 int is_valid_position(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int floor, int w, int l) {
@@ -414,12 +437,10 @@ void reset_to_starting_area(Player *player, int player_id) {
                        (player_id == PLAYER_B) ? DIR_WEST : DIR_EAST;
 }
 
-// Fixed move_player_with_teleport function - now returns 1 if blocked by wall, 0 otherwise
 int move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH],
                                Stair stairs[], int num_stairs,
                                Pole poles[], int num_poles,
                                Wall walls[], int num_walls, int steps, int player_id, const int flag[3]) {
-    // Track visited positions to detect loops
     int visited[MAX_LOOP_HISTORY][3];
     int visit_count = 0;
     char player_name = 'A' + player_id;
@@ -430,14 +451,13 @@ int move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH]
         int old_w = player->pos[1];
         int old_l = player->pos[2];
 
-        // Record current position for loop detection
         visited[visit_count][0] = old_f;
         visited[visit_count][1] = old_w;
         visited[visit_count][2] = old_l;
         visit_count++;
 
         if (visit_count >= MAX_LOOP_HISTORY) {
-            visit_count = 0; // Simple circular buffer
+            visit_count = 0;
         }
 
         int new_w = old_w;
@@ -455,14 +475,13 @@ int move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH]
         }
 
         if (is_wall_blocking(maze, old_f, old_w, old_l, new_w, new_l)) {
-            blocked_by_wall = 1; // Mark that movement was blocked by wall
+            blocked_by_wall = 1;
             return blocked_by_wall;
         }
 
         player->pos[1] = new_w;
         player->pos[2] = new_l;
 
-        // Check for loop – compare with last positions
         for (int i = 0; i < visit_count - 1; i++) {
             if (visited[i][0] == player->pos[0] &&
                 visited[i][1] == player->pos[1] &&
@@ -473,7 +492,6 @@ int move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH]
             }
         }
 
-        // Check for stairs
         int stair_indices[MAX_STAIRS];
         int num_found = find_all_stairs_at(stairs, num_stairs, old_f, new_w, new_l, stair_indices);
 
@@ -485,7 +503,6 @@ int move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH]
             if (num_found == 1) {
                 chosen_stair = stair_indices[0];
             } else {
-                // Choose stair closest to flag
                 int best_distance = 999999;
                 int best_index = -1;
                 int candidates[MAX_STAIRS];
@@ -540,7 +557,6 @@ int move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH]
                 printf("Player takes the stairs and now placed at [%d,%d,%d] in floor %d.\n",
                        player->pos[0], player->pos[1], player->pos[2], player->pos[0]);
 
-                // Check if landed in starting area
                 if (is_in_starting_area(player->pos[0], player->pos[1], player->pos[2])) {
                     printf("%c fell into starting area via stair – must roll 6 to re-enter.\n", player_name);
                     player->in_game = 0;
@@ -550,7 +566,6 @@ int move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH]
             }
         }
 
-        // Check for pole
         int pole_index = find_pole_at(poles, num_poles, old_f, new_w, new_l);
         if (pole_index != -1) {
             Pole *pole = &poles[pole_index];
@@ -563,7 +578,6 @@ int move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH]
             printf("Player slides down and now placed at [%d,%d,%d] in floor %d.\n",
                    player->pos[0], player->pos[1], player->pos[2], player->pos[0]);
 
-            // Check if landed in starting area
             if (is_in_starting_area(player->pos[0], player->pos[1], player->pos[2])) {
                 printf("%c fell into starting area via pole – must roll 6 to re-enter.\n", player_name);
                 player->in_game = 0;
@@ -572,7 +586,6 @@ int move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH]
             continue;
         }
 
-        // Check for Bawana
         if (old_f == 0 && new_w >= 6 && new_w <= 9 && new_l >= 20 && new_l <= 24) {
             apply_bawana_effect(player, maze, player_id);
         }
