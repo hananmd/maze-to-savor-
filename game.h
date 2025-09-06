@@ -109,7 +109,7 @@ int read_seed_from_file(const char *filename);
 int roll_movement_dice(void);
 int roll_direction_dice(void);
 void enter_maze(Player *player, int player_id);
-void move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH],
+int move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH],
                                Stair stairs[], int num_stairs,
                                Pole poles[], int num_poles,
                                Wall walls[], int num_walls, int steps, int player_id, const int flag[3]);

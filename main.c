@@ -18,23 +18,30 @@ void play_turn(int player_id, Player players[3], Cell maze[NUM_FLOORS][FLOOR_WID
     
     printf("\n=== Player %c's Turn ===\n", player_name);
     
+    // Fixed food poisoning logic
     if (p->bawana_effect == EFFECT_FOOD_POISONING) {
         p->bawana_turns_left--;
         printf("%c is still food poisoned and misses the turn.\n", player_name);
         
         if (p->bawana_turns_left == 0) {
-            printf("%c is now fit to proceed from the food poisoning episode and now placed on a random cell and the effects take place.\n", player_name);
             p->bawana_effect = EFFECT_NONE;
-            int bawana_cells[12][2] = {
-                {6,21}, {6,22}, {6,23}, {6,24},
-                {7,21}, {7,22}, {7,23}, {7,24},
-                {8,21}, {8,22}, {8,23}, {8,24}
-            };
-            int idx = rand() % 12;
-            p->pos[0] = 0;
-            p->pos[1] = bawana_cells[idx][0];
-            p->pos[2] = bawana_cells[idx][1];
-            apply_bawana_effect(p, maze, player_id);
+            
+            // Check if player has zero movement points after food poisoning
+            if (p->movement_points <= 0) {
+                printf("%c is now fit to proceed from the food poisoning episode and now placed on a random cell and the effects take place.\n", player_name);
+                int bawana_cells[12][2] = {
+                    {6,21}, {6,22}, {6,23}, {6,24},
+                    {7,21}, {7,22}, {7,23}, {7,24},
+                    {8,21}, {8,22}, {8,23}, {8,24}
+                };
+                int idx = rand() % 12;
+                p->pos[0] = 0;
+                p->pos[1] = bawana_cells[idx][0];
+                p->pos[2] = bawana_cells[idx][1];
+                apply_bawana_effect(p, maze, player_id);
+            } else {
+                printf("%c has recovered from food poisoning and can resume normal play.\n", player_name);
+            }
         }
         return;
     }
@@ -52,9 +59,8 @@ void play_turn(int player_id, Player players[3], Cell maze[NUM_FLOORS][FLOOR_WID
         } else {
             printf("%c is at the starting area and rolls %d on the movement dice cannot enter the maze.\n", 
                    player_name, move_roll);
-            p->movement_points -= 2;
-            printf("%c moved 0 cells that cost 2 movement points and is left with %d and is moving in the starting area.\n", 
-                   player_name, p->movement_points);
+            // No movement point deduction for failing to enter maze from starting area
+            printf("%c moved 0 cells and remains in the starting area.\n", player_name);
             if (p->movement_points <= 0) {
                 reset_to_bawana(p);
             }
@@ -101,14 +107,23 @@ void play_turn(int player_id, Player players[3], Cell maze[NUM_FLOORS][FLOOR_WID
     }
 
     int old_pos[3] = {p->pos[0], p->pos[1], p->pos[2]};
-    move_player_with_teleport(p, maze, stairs, num_stairs, poles, num_poles, walls, num_walls, move_roll, player_id, flag);
+    
+    // Fixed movement function call and movement point logic
+    int was_blocked_by_wall = move_player_with_teleport(p, maze, stairs, num_stairs, poles, num_poles, walls, num_walls, move_roll, player_id, flag);
 
     if (old_pos[0] == p->pos[0] && old_pos[1] == p->pos[1] && old_pos[2] == p->pos[2]) {
         printf("%c rolls %d on the movement dice and cannot move in the %s. Player remains at [%d,%d,%d]\n", 
                player_name, original_move, directions[p->direction], p->pos[0], p->pos[1], p->pos[2]);
-        p->movement_points -= 2;
-        printf("%c moved 0 cells that cost 2 movement points and is left with %d and is moving in the %s.\n", 
-               player_name, p->movement_points, directions[p->direction]);
+        
+        // Only deduct movement points if blocked by wall in maze (not starting area)
+        if (was_blocked_by_wall && p->in_game) {
+            p->movement_points -= 2;
+            printf("%c moved 0 cells that cost 2 movement points and is left with %d and is moving in the %s.\n", 
+                   player_name, p->movement_points, directions[p->direction]);
+        } else {
+            printf("%c moved 0 cells and is left with %d and is moving in the %s.\n", 
+                   player_name, p->movement_points, directions[p->direction]);
+        }
     } else {
         int cells_moved = abs(old_pos[1] - p->pos[1]) + abs(old_pos[2] - p->pos[2]);
         printf(" by %d cells and is now at [%d,%d,%d].\n", move_roll, p->pos[0], p->pos[1], p->pos[2]);
@@ -116,11 +131,18 @@ void play_turn(int player_id, Player players[3], Cell maze[NUM_FLOORS][FLOOR_WID
                player_name, cells_moved, p->movement_points, directions[p->direction]);
     }
 
-    if (p->bawana_effect > EFFECT_NONE) {
+    // Handle other Bawana effects countdown
+    if (p->bawana_effect > EFFECT_NONE && p->bawana_effect != EFFECT_FOOD_POISONING) {
         p->bawana_turns_left--;
         if (p->bawana_turns_left == 0) {
             if (p->bawana_effect == EFFECT_DISORIENTED) {
                 printf("%c has recovered from disorientation.\n", player_name);
+            } else if (p->bawana_effect == EFFECT_TRIGGERED) {
+                printf("%c has recovered from being triggered.\n", player_name);
+            } else if (p->bawana_effect == EFFECT_HAPPY) {
+                printf("%c is no longer extra happy.\n", player_name);
+            } else if (p->bawana_effect == EFFECT_RANDOM_MP) {
+                printf("%c's random movement point effect has expired.\n", player_name);
             }
             p->bawana_effect = EFFECT_NONE;
         }
@@ -150,7 +172,8 @@ void print_game_status(Player players[3], int flag[3]) {
         if (players[i].in_game) {
             printf("In maze, MP: %d", players[i].movement_points);
             if (players[i].bawana_effect > EFFECT_NONE) {
-                printf(", Bawana effect: %d (turns left: %d)", players[i].bawana_effect, players[i].bawana_turns_left);
+                const char* effect_names[] = {"None", "Food Poisoning", "Disoriented", "Triggered", "Happy", "Random MP"};
+                printf(", Bawana effect: %s (turns left: %d)", effect_names[players[i].bawana_effect], players[i].bawana_turns_left);
             }
         } else {
             printf("In starting area, MP: %d", players[i].movement_points);
