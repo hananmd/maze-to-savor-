@@ -87,6 +87,7 @@ typedef struct {
     int bawana_cell_type; // -1 = not Bawana, 0-4 = effect type
     int is_blocked_by_stair; // For intermediate floors
     int is_bawana_entrance;   // 1 if this is the Bawana entrance cell
+    int consumable_value; // 0-4, deducted from movement points when player moves through
 } Cell;
 
 typedef struct {

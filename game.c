@@ -37,6 +37,7 @@ void initialize_maze(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]) {
                 maze[f][w][l].bawana_cell_type = -1;
                 maze[f][w][l].is_blocked_by_stair = 0;
                 maze[f][w][l].is_bawana_entrance = 0;
+                maze[f][w][l].consumable_value = 0; // Initialize to 0
             }
         }
     }
@@ -125,6 +126,17 @@ void initialize_maze(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]) {
             int w = bawana_interior_cells[i][0];
             int l = bawana_interior_cells[i][1];
             maze[0][w][l].bawana_cell_type = BA_RANDOM_MP;
+        }
+    }
+
+    // Assign random consumable values (0-4) to all valid cells
+    for (int f = 0; f < NUM_FLOORS; f++) {
+        for (int w = 0; w < FLOOR_WIDTH; w++) {
+            for (int l = 0; l < FLOOR_LENGTH; l++) {
+                if (maze[f][w][l].is_valid) {
+                    maze[f][w][l].consumable_value = rand() % 5; // Random value 0-4
+                }
+            }
         }
     }
 }
@@ -574,6 +586,11 @@ int move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH]
         player->pos[1] = new_w;
         player->pos[2] = new_l;
 
+        // Add consumable value of the cell to movement cost (unified cost)
+        if (movement_cost) {
+            *movement_cost += maze[player->pos[0]][player->pos[1]][player->pos[2]].consumable_value;
+        }
+
         // Check for infinite loop after basic movement
         for (int i = 0; i < visit_count - 1; i++) {
             if (visited[i][0] == player->pos[0] &&
@@ -712,7 +729,7 @@ int move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH]
     }
     
     // Set output parameters for successful movement
-    if (movement_cost) *movement_cost = steps; // 1 MP per step
+    // Movement cost is only the sum of consumable values from cells traveled (no base cost per step)
     if (actual_steps) *actual_steps = steps;
     
     return 1; // Movement successful

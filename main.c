@@ -190,7 +190,7 @@ void play_turn(int player_id, Player players[3], Cell maze[NUM_FLOORS][FLOOR_WID
                    format_position(p->pos[0], p->pos[1], p->pos[2]));
         }
         
-        // Apply movement cost and deduct from MP
+        // Apply unified movement cost, deduct from MP
         p->movement_points -= movement_cost;
         
         printf("%c moved 0 cells that cost %d movement points and is left with %d and is moving in the %s.\n", 
