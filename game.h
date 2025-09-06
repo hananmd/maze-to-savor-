@@ -102,7 +102,7 @@ void enter_maze(Player *player, int player_id);
 void move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH],
                                Stair stairs[], int num_stairs,
                                Pole poles[], int num_poles,
-                               Wall walls[], int num_walls, int steps, int player_id, const int flag[3]);
+                               Wall walls[], int num_walls, int steps);
 int is_wall_blocking(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int floor, int w1, int l1, int w2, int l2);
 int find_stair_at(Stair stairs[], int num_stairs, int floor, int w, int l);
 int find_pole_at(Pole poles[], int num_poles, int floor, int w, int l);
