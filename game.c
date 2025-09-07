@@ -585,8 +585,9 @@ void apply_bawana_effect(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOO
             printf("%c eats from Bawana and is triggered due to bad quality of food. %c is placed at the entrance of Bawana with 50 movement points.\n", player_name, player_name);
             break;
         case BA_HAPPY:
-            player->bawana_effect = EFFECT_HAPPY;
-            player->bawana_turns_left = 1; // Set to 1 to indicate active but no countdown
+            // Happy grants a one-time MP boost with no lingering status
+            player->bawana_effect = EFFECT_NONE;
+            player->bawana_turns_left = 0;
             player->movement_points += 200;
             player->pos[1] = 9; player->pos[2] = 19;
             player->direction = DIR_NORTH;
@@ -840,12 +841,23 @@ void place_random_flag(int flag[3], Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LEN
     for (int f = 0; f < NUM_FLOORS; f++) {
         for (int w = 0; w < FLOOR_WIDTH; w++) {
             for (int l = 0; l < FLOOR_LENGTH; l++) {
-                if (maze[f][w][l].is_valid && !maze[f][w][l].is_starting_area && !maze[f][w][l].has_wall) {
-                    valid_positions[count][0] = f;
-                    valid_positions[count][1] = w;
-                    valid_positions[count][2] = l;
-                    count++;
-                }
+                // Must be a valid maze cell
+                if (!maze[f][w][l].is_valid) continue;
+                // Exclude starting area
+                if (maze[f][w][l].is_starting_area) continue;
+                // Exclude any walls
+                if (maze[f][w][l].has_wall) continue;
+                // Exclude cells blocked by intermediate stairs (no standing allowed)
+                if (maze[f][w][l].is_blocked_by_stair) continue;
+                // Exclude Bawana entrance explicitly
+                if (maze[f][w][l].is_bawana_entrance) continue;
+                // Exclude Bawana interior cells
+                if (f == 0 && w >= 6 && w <= 9 && l >= 20 && l <= 24) continue;
+
+                valid_positions[count][0] = f;
+                valid_positions[count][1] = w;
+                valid_positions[count][2] = l;
+                count++;
             }
         }
     }
