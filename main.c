@@ -53,7 +53,7 @@ void play_turn(int player_id, Player players[3], Cell maze[NUM_FLOORS][FLOOR_WID
     
     // Track throws after entering maze - each player has individual direction die timing
     int throw_count = p->roll_count - 1; // Subtract 1 since roll_count increments after each turn
-    int is_direction_dice_roll = (p->in_game && throw_count > 0 && (throw_count % 4 == 0));
+    int is_direction_dice_roll = (p->in_game && throw_count > 0 && (throw_count % 4 == 3));
     
     if (is_direction_dice_roll) {
         wait_for_enter("Press Enter to roll direction die: ");

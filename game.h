@@ -49,6 +49,16 @@
 #define EFFECT_HAPPY            4
 #define EFFECT_RANDOM_MP        5
 
+// Movement Bonus Types (for Cell.movement_bonus_type)
+#define BONUS_NONE              0
+#define BONUS_ADD_1            1
+#define BONUS_ADD_2            2
+#define BONUS_ADD_3            3
+#define BONUS_ADD_4            4
+#define BONUS_ADD_5            5
+#define BONUS_MULTIPLY_2       6
+#define BONUS_MULTIPLY_3       7
+
 // Blocking reasons for movement
 #define BLOCK_NONE              0
 #define BLOCK_WALL              1
@@ -88,6 +98,7 @@ typedef struct {
     int is_blocked_by_stair; // For intermediate floors
     int is_bawana_entrance;   // 1 if this is the Bawana entrance cell
     int consumable_value; // 0-4, deducted from movement points when player moves through
+    int movement_bonus_type; // 0 = none, 1-5 = add 1-5 MP, 6-7 = multiply by 2-3
 } Cell;
 
 typedef struct {
@@ -141,5 +152,6 @@ const char* format_position(int floor, int w, int l);
 int can_enter_bawana_entrance(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int new_w, int new_l);
 int check_path_validity(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], Wall walls[], int num_walls, int steps, int player_id, int *blocking_step, int *blocking_reason);
 const char* get_blockage_reason_description(int blocking_reason);
+void apply_movement_bonus(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int player_id);
 
 #endif

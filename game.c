@@ -38,6 +38,8 @@ void initialize_maze(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]) {
                 maze[f][w][l].is_blocked_by_stair = 0;
                 maze[f][w][l].is_bawana_entrance = 0;
                 maze[f][w][l].consumable_value = 0; // Initialize to 0
+                maze[f][w][l].movement_bonus_type = BONUS_NONE; // Initialize to no bonus
+
             }
         }
     }
@@ -135,6 +137,26 @@ void initialize_maze(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]) {
             for (int l = 0; l < FLOOR_LENGTH; l++) {
                 if (maze[f][w][l].is_valid) {
                     maze[f][w][l].consumable_value = rand() % 5; // Random value 0-4
+                }
+            }
+        }
+    }
+
+    // Assign random movement bonuses to valid cells (excluding Bawana area)
+    for (int f = 0; f < NUM_FLOORS; f++) {
+        for (int w = 0; w < FLOOR_WIDTH; w++) {
+            for (int l = 0; l < FLOOR_LENGTH; l++) {
+                if (maze[f][w][l].is_valid && !maze[f][w][l].is_starting_area) {
+                    // Skip Bawana area (Floor 0, w=6-9, l=20-24)
+                    if (f == 0 && w >= 6 && w <= 9 && l >= 20 && l <= 24) {
+                        continue;
+                    }
+                    
+                    // 20% chance of having a movement bonus
+                    if (rand() % 5 == 0) {
+                        // Random bonus type: 1-5 (add 1-5 MP) or 6-7 (multiply by 2-3)
+                        maze[f][w][l].movement_bonus_type = (rand() % 7) + 1;
+                    }
                 }
             }
         }
@@ -726,6 +748,9 @@ int move_player_with_teleport(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH]
         if (old_f == 0 && new_w >= 6 && new_w <= 9 && new_l >= 20 && new_l <= 24) {
             apply_bawana_effect(player, maze, player_id);
         }
+        
+        // Apply movement bonus if player lands on a bonus cell
+        apply_movement_bonus(player, maze, player_id);
     }
     
     // Set output parameters for successful movement
@@ -790,6 +815,63 @@ void update_stair_directions(Stair stairs[], int num_stairs) {
         }
         printf("Stair directions updated after 5 rounds.\n");
     }
+}
+
+void apply_movement_bonus(Player *player, Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH], int player_id) {
+    int f = player->pos[0];
+    int w = player->pos[1];
+    int l = player->pos[2];
+    
+    if (f < 0 || f >= NUM_FLOORS || w < 0 || w >= FLOOR_WIDTH || l < 0 || l >= FLOOR_LENGTH) {
+        return;
+    }
+    
+    int bonus_type = maze[f][w][l].movement_bonus_type;
+    if (bonus_type == BONUS_NONE) return;
+    
+    char player_name = 'A' + player_id;
+    int old_mp = player->movement_points;
+    
+    switch (bonus_type) {
+        case BONUS_ADD_1:
+            player->movement_points += 1;
+            printf("%c lands on a movement bonus cell and gains 1 movement point! (%d -> %d)\n", 
+                   player_name, old_mp, player->movement_points);
+            break;
+        case BONUS_ADD_2:
+            player->movement_points += 2;
+            printf("%c lands on a movement bonus cell and gains 2 movement points! (%d -> %d)\n", 
+                   player_name, old_mp, player->movement_points);
+            break;
+        case BONUS_ADD_3:
+            player->movement_points += 3;
+            printf("%c lands on a movement bonus cell and gains 3 movement points! (%d -> %d)\n", 
+                   player_name, old_mp, player->movement_points);
+            break;
+        case BONUS_ADD_4:
+            player->movement_points += 4;
+            printf("%c lands on a movement bonus cell and gains 4 movement points! (%d -> %d)\n", 
+                   player_name, old_mp, player->movement_points);
+            break;
+        case BONUS_ADD_5:
+            player->movement_points += 5;
+            printf("%c lands on a movement bonus cell and gains 5 movement points! (%d -> %d)\n", 
+                   player_name, old_mp, player->movement_points);
+            break;
+        case BONUS_MULTIPLY_2:
+            player->movement_points *= 2;
+            printf("%c lands on a movement bonus cell and doubles movement points! (%d -> %d)\n", 
+                   player_name, old_mp, player->movement_points);
+            break;
+        case BONUS_MULTIPLY_3:
+            player->movement_points *= 3;
+            printf("%c lands on a movement bonus cell and triples movement points! (%d -> %d)\n", 
+                   player_name, old_mp, player->movement_points);
+            break;
+    }
+    
+    // Clear the bonus after applying it (one-time use)
+    maze[f][w][l].movement_bonus_type = BONUS_NONE;
 }
 
 void reset_to_bawana(Player *player, int player_id) {
