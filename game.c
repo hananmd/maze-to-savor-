@@ -85,12 +85,16 @@ void initialize_maze(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]) {
     for (int w = 6; w <= 9; w++) {
         for (int l = 20; l <= 24; l++) {
             maze[0][w][l].is_valid = 1;
+            maze[0][w][l].consumable_value = 0; // Bawana cells have no consumable value
+            maze[0][w][l].movement_bonus_type = BONUS_NONE; // Bawana cells have no movement bonus
         }
     }
 
     // Mark Bawana entrance cell
     maze[0][9][19].is_valid = 1;
     maze[0][9][19].is_bawana_entrance = 1;
+    maze[0][9][19].consumable_value = 0; // Bawana entrance has no consumable value
+    maze[0][9][19].movement_bonus_type = BONUS_NONE; // Bawana entrance has no movement bonus
 
     // Bawana walls
     for (int w = 6; w <= 9; w++) {
@@ -131,35 +135,105 @@ void initialize_maze(Cell maze[NUM_FLOORS][FLOOR_WIDTH][FLOOR_LENGTH]) {
         }
     }
 
-    // Assign random consumable values (0-4) to all valid cells
-    for (int f = 0; f < NUM_FLOORS; f++) {
-        for (int w = 0; w < FLOOR_WIDTH; w++) {
-            for (int l = 0; l < FLOOR_LENGTH; l++) {
-                if (maze[f][w][l].is_valid) {
-                    maze[f][w][l].consumable_value = rand() % 5; // Random value 0-4
-                }
-            }
-        }
-    }
-
-    // Assign random movement bonuses to valid cells (excluding Bawana area)
+    // Rule 10: Assign consumable values and bonuses according to specified distribution
+    // First, collect all valid cells (excluding starting area and Bawana)
+    int valid_cells[1000][3]; // [floor, w, l]
+    int valid_count = 0;
+    
     for (int f = 0; f < NUM_FLOORS; f++) {
         for (int w = 0; w < FLOOR_WIDTH; w++) {
             for (int l = 0; l < FLOOR_LENGTH; l++) {
                 if (maze[f][w][l].is_valid && !maze[f][w][l].is_starting_area) {
-                    // Skip Bawana area (Floor 0, w=6-9, l=20-24)
-                    if (f == 0 && w >= 6 && w <= 9 && l >= 20 && l <= 24) {
+                    // Skip Bawana area (Floor 0, w=6-9, l=20-24) and Bawana entrance
+                    if ((f == 0 && w >= 6 && w <= 9 && l >= 20 && l <= 24) || 
+                        maze[f][w][l].is_bawana_entrance) {
                         continue;
                     }
-                    
-                    // 20% chance of having a movement bonus
-                    if (rand() % 5 == 0) {
-                        // Random bonus type: 1-5 (add 1-5 MP) or 6-7 (multiply by 2-3)
-                        maze[f][w][l].movement_bonus_type = (rand() % 7) + 1;
-                    }
+                    valid_cells[valid_count][0] = f;
+                    valid_cells[valid_count][1] = w;
+                    valid_cells[valid_count][2] = l;
+                    valid_count++;
                 }
             }
         }
+    }
+    
+    // Shuffle the cells randomly
+    for (int i = valid_count - 1; i > 0; i--) {
+        int j = rand() % (i + 1);
+        // Swap cells
+        int temp[3];
+        temp[0] = valid_cells[i][0]; temp[1] = valid_cells[i][1]; temp[2] = valid_cells[i][2];
+        valid_cells[i][0] = valid_cells[j][0]; valid_cells[i][1] = valid_cells[j][1]; valid_cells[i][2] = valid_cells[j][2];
+        valid_cells[j][0] = temp[0]; valid_cells[j][1] = temp[1]; valid_cells[j][2] = temp[2];
+    }
+    
+    // Apply Rule 10 distribution
+    int cell_index = 0;
+    
+    // 25% - Consumable zero value cells
+    int zero_cells = (valid_count * 25) / 100;
+    for (int i = 0; i < zero_cells && cell_index < valid_count; i++) {
+        int f = valid_cells[cell_index][0];
+        int w = valid_cells[cell_index][1];
+        int l = valid_cells[cell_index][2];
+        maze[f][w][l].consumable_value = 0;
+        maze[f][w][l].movement_bonus_type = BONUS_NONE;
+        cell_index++;
+    }
+    
+    // 35% - Consumable value 1-4
+    int consumable_cells = (valid_count * 35) / 100;
+    for (int i = 0; i < consumable_cells && cell_index < valid_count; i++) {
+        int f = valid_cells[cell_index][0];
+        int w = valid_cells[cell_index][1];
+        int l = valid_cells[cell_index][2];
+        maze[f][w][l].consumable_value = (rand() % 4) + 1; // 1-4
+        maze[f][w][l].movement_bonus_type = BONUS_NONE;
+        cell_index++;
+    }
+    
+    // 25% - Bonus 1-2 (add 1-2 MP)
+    int bonus_1_2_cells = (valid_count * 25) / 100;
+    for (int i = 0; i < bonus_1_2_cells && cell_index < valid_count; i++) {
+        int f = valid_cells[cell_index][0];
+        int w = valid_cells[cell_index][1];
+        int l = valid_cells[cell_index][2];
+        maze[f][w][l].consumable_value = 0;
+        maze[f][w][l].movement_bonus_type = (rand() % 2) + 1; // BONUS_ADD_1 or BONUS_ADD_2
+        cell_index++;
+    }
+    
+    // 10% - Bonus 3-5 (add 3-5 MP)
+    int bonus_3_5_cells = (valid_count * 10) / 100;
+    for (int i = 0; i < bonus_3_5_cells && cell_index < valid_count; i++) {
+        int f = valid_cells[cell_index][0];
+        int w = valid_cells[cell_index][1];
+        int l = valid_cells[cell_index][2];
+        maze[f][w][l].consumable_value = 0;
+        maze[f][w][l].movement_bonus_type = (rand() % 3) + 3; // BONUS_ADD_3, BONUS_ADD_4, or BONUS_ADD_5
+        cell_index++;
+    }
+    
+    // 5% - Multiplier 2-3 (multiply by 2-3)
+    int multiplier_cells = (valid_count * 5) / 100;
+    for (int i = 0; i < multiplier_cells && cell_index < valid_count; i++) {
+        int f = valid_cells[cell_index][0];
+        int w = valid_cells[cell_index][1];
+        int l = valid_cells[cell_index][2];
+        maze[f][w][l].consumable_value = 0;
+        maze[f][w][l].movement_bonus_type = (rand() % 2) + 6; // BONUS_MULTIPLY_2 or BONUS_MULTIPLY_3
+        cell_index++;
+    }
+    
+    // Any remaining cells get zero value (should be very few due to rounding)
+    while (cell_index < valid_count) {
+        int f = valid_cells[cell_index][0];
+        int w = valid_cells[cell_index][1];
+        int l = valid_cells[cell_index][2];
+        maze[f][w][l].consumable_value = 0;
+        maze[f][w][l].movement_bonus_type = BONUS_NONE;
+        cell_index++;
     }
 }
 

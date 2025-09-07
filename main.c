@@ -112,8 +112,6 @@ void play_turn(int player_id, Player players[3], Cell maze[NUM_FLOORS][FLOOR_WID
         } else {
             printf("%c is at the starting area and rolls %d on the movement dice cannot enter the maze.\n", 
                    player_name, move_roll);
-            printf("%c moved 0 cells that cost 0 movement points and is left with %d and is moving in the %s.\n", 
-                   player_name, p->movement_points, get_direction_name(p->direction));
             
             if (p->movement_points <= 0) {
                 reset_to_bawana(p, player_id);
@@ -144,28 +142,28 @@ void play_turn(int player_id, Player players[3], Cell maze[NUM_FLOORS][FLOOR_WID
     // Print initial movement message based on dice rolls
     if (is_direction_dice_roll) {
         if (p->bawana_effect == EFFECT_TRIGGERED) {
-            printf("%c is triggered and rolls and %d on the movement dice and move in the %s", 
+            printf("%c is triggered and rolls and %d on the movement dice and move in the %s ", 
                    player_name, original_move, get_direction_name(p->direction));
         } else {
             printf("%c rolls and %d on the movement dice", player_name, original_move);
             
             if (p->bawana_effect == EFFECT_DISORIENTED) {
-                printf(" and is disoriented and move in the %s", get_direction_name(p->direction));
+                printf(" and is disoriented and move in the %s ", get_direction_name(p->direction));
             } else {
-                printf(" and moves %s", get_direction_name(p->direction));
+                printf(" and moves %s ", get_direction_name(p->direction));
             }
         }
     } else {
         if (p->bawana_effect == EFFECT_TRIGGERED) {
-            printf("%c is triggered and rolls and %d on the movement dice and move in the %s", 
+            printf("%c is triggered and rolls and %d on the movement dice and move in the %s ", 
                    player_name, original_move, get_direction_name(p->direction));
         } else {
             printf("%c rolls and %d on the movement dice", player_name, original_move);
             
             if (p->bawana_effect == EFFECT_DISORIENTED) {
-                printf(" and is disoriented and move in the %s", get_direction_name(p->direction));
+                printf(" and is disoriented and move in the %s ", get_direction_name(p->direction));
             } else {
-                printf(" and moves %s", get_direction_name(p->direction));
+                printf(" and moves %s ", get_direction_name(p->direction));
             }
         }
     }
